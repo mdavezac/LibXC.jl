@@ -1,14 +1,16 @@
+typealias CReal Union{Cfloat, Cdouble}
+
 immutable CFuncReferenceType
     ref::Cstring
     doi::Cstring
     bibtex::Cstring
 end
 
-immutable CFuncInfoType{FLOAT <: Union{Cfloat, Cdouble}}
+immutable CFuncInfoType{FLOAT <: CReal}
     """ identifier number """
-    number::CInt
+    number::Cint
     """ XC_EXCHANGE, XC_CORRELATION, XC_EXCHANGE_CORRELATION, XC_KINETIC """
-    kind::CInt
+    kind::Cint
 
     """ name of the functional, e.g. "PBE" """
     name::Cstring
@@ -68,33 +70,76 @@ immutable CFuncInfoType{FLOAT <: Union{Cfloat, Cdouble}}
     mmga::Ptr{Void}
 end
 
-immutable CFuncType
+immutable CFuncType{FLOAT <: CReal}
     """ all the information concerning this functional """
-    info::Ptr{CFuncInfoType}
-                     int nspin;                            /* XC_UNPOLARIZED or XC_POLARIZED  */
+    info::Ptr{CFuncInfoType{FLOAT}}
+    """ XC_UNPOLARIZED or XC_POLARIZED """
+    nspin::Cint
 
-                     int n_func_aux;                       /* how many auxiliary functions we need */
-                     struct XC(func_type) **func_aux;      /* most GGAs are based on a LDA or other GGAs  */
-                     FLOAT *mix_coef;                      /* coefficients for the mixing */
+    """ number of auxiliary functions """
+    n_func_aux::Cint
+    """ most GGAs are based on a LDA or other GGAs """
+    func_aux::Ptr{Ptr{CFuncType{FLOAT}}}
 
-                     FLOAT cam_omega;                      /* range-separation parameter for range-separated hybrids */
-                     FLOAT cam_alpha;                      /* fraction of Hartree-Fock exchange for normal or range separated hybrids */
-                     FLOAT cam_beta;                       /* fraction of short-range exchange for range-separated hybrids */
+    """ coefficients for the mixing """
+    mix_coef::FLOAT
 
-                     FLOAT nlc_b;                          /* Non-local correlation, b parameter */
-                     FLOAT nlc_C;                          /* Non-local correlation, C parameter */
+    """ range-separation parameter for range-separated hybrids """
+    cam_omega::FLOAT
+    """ fraction of Hartree-Fock exchange for hybrids """
+    cam_alpha::FLOAT
+    """ fraction of short-range exchange for range-separated hybrids """
+    cam_beta::FLOAT
 
-                     int func;                             /* Shortcut in case of several functionals sharing the same interface */
-                     int n_rho, n_sigma, n_tau, n_lapl;    /* spin dimensions of the arrays */
-                     int n_zk;
+    """ Non-local correlation, b parameter """
+    nlc_b::FLOAT
+    """ Non-local correlation, C parameter """
+    nlc_C::FLOAT
 
-                     int n_vrho, n_vsigma, n_vtau, n_vlapl;
+    """ Shortcut in case of several functionals sharing the same interface """
+    func::Cint
+    """ spin dimensions of the arrays """
+    n_rho::Cint
+    """ spin dimensions of the arrays """
+    n_sigma::Cint
+    """ spin dimensions of the arrays """
+    n_tau::Cint
+    """ spin dimensions of the arrays """
+    n_lapl::Cint
+    n_zk::Cint
 
-                     int n_v2rho2, n_v2sigma2, n_v2tau2, n_v2lapl2,
-                     n_v2rhosigma, n_v2rhotau, n_v2rholapl, 
-                     n_v2sigmatau, n_v2sigmalapl, n_v2lapltau;
+    n_vrho::Cint
+    n_vsigma::Cint
+    n_vtau::Cint
+    n_vlapl::Cint
 
-                     int n_v3rho3, n_v3rho2sigma, n_v3rhosigma2, n_v3sigma3;
+    n_v2rho2::Cint
+    n_v2sigma2::Cint
+    n_v2tau2::Cint
+    n_v2lapl2::Cint
 
-                     void *params;                         /* this allows us to fix parameters in the functional */
-                    };
+    n_v2rhosigma::Cint
+    n_v2rhotau::Cint
+    n_v2rholapl::Cint
+
+    n_v2sigmatau::Cint
+    n_v2sigmalapl::Cint
+    n_v2lapltau::Cint
+
+
+    n_v3rho3::Cint
+    n_v3rho2sigma::Cint
+    n_v3rhosigma2::Cint
+    n_v3sigma3::Cint
+
+
+    """ this allows us to fix parameters in the functional """
+    params::Ptr{Void}
+end
+
+immutable CFunctionalKey
+    """ Name of the functional """
+    name::Cstring
+    """ Key associated with the functional """
+    key::Cint
+end
