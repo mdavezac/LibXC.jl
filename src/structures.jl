@@ -139,7 +139,7 @@ end
 
 immutable CFunctionalKey
     """ Name of the functional """
-    name::Cstring
+    name::NTuple{256, Cchar}
     """ Key associated with the functional """
     key::Cint
 end

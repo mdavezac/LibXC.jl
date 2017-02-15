@@ -9,14 +9,8 @@ end
 include("structures.jl")
 include("constants.jl")
 
-function _get_version()
+const LIB_VERSION = let
     version = Cint[0, 0, 0]
-    ccall((:xc_version, libxc), Void, (Ref{Cint}, Ref{Cint}, Ref{Cint}), Ref(version),
-          Ref(version, 2), Ref(version, 3))
-    VersionNumber(version...)
-end
-
-const lib_version = let version = Cint[0, 0, 0]
     @eval ccall((:xc_version, $libxc), Void, (Ref{Cint}, Ref{Cint}, Ref{Cint}),
                 Ref($version), Ref($version, 2), Ref($version, 3))
     VersionNumber(version...)
@@ -24,35 +18,20 @@ end
 
 
 
-""" Maximum number of functionals defined in the library """
-const NFUNCTIONALS = let current = 1, start = 1, last = 10000
-    # Performs bisection to find largest valid N
-    # Brute force is a bit slow
-    name = @eval ccall(
-        (:xc_functional_get_name, $libxc), Cstring, (Cint,), $last)
-    while name ≠ Cstring(C_NULL)
-        last *= 2
-        name = @eval ccall(
-            (:xc_functional_get_name, $libxc), Cstring, (Cint,), $last)
-    end
+""" Functional names and keys """
+const FUNCTIONALS = let
+    keys = @eval cglobal(
+        (:xc_functional_keys, $(LibXC.libxc)), LibXC.CFunctionalKey)
+    result = Dict{Symbol, Int32}()
 
-    while start + 1 < last
-        current = div(start + last, 2)
-        name = @eval ccall(
-            (:xc_functional_get_name, $libxc), Cstring, (Cint,), $current)
-        if name == Cstring(C_NULL)
-            last = current
-        else
-            start = current
-        end
+    i, key = 1, unsafe_load(keys)
+    while key.key > 0
+        n = findfirst(x -> x == UInt32('\0'), key.name) - 1
+        push!(result, Symbol(join(Char(key.name[u]) for u in 1:n)) => key.key)
+        i += 1
+        key = unsafe_load(keys, i)
     end
-    start
-end
-
-_xc_key(name::AbstractString) = ccall((:xc_functional_get_number), Cint, (Cstring,), name)
-function _xc_name(key::Integer)
-    name = ccall((:xc_functional_get_name), Cstring, (Cint,), key)
-    unsafe_string(name)
+    result
 end
 
 end # module
