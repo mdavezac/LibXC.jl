@@ -1,12 +1,12 @@
 typealias CReal Union{Cfloat, Cdouble}
 
-immutable CFuncReferenceType
+type CFuncReferenceType
     ref::Cstring
     doi::Cstring
     bibtex::Cstring
 end
 
-immutable CFuncInfoType{FLOAT <: CReal}
+type CFuncInfoType{FLOAT <: CReal}
     """ identifier number """
     number::Cint
     """ XC_EXCHANGE, XC_CORRELATION, XC_EXCHANGE_CORRELATION, XC_KINETIC """
@@ -70,7 +70,7 @@ immutable CFuncInfoType{FLOAT <: CReal}
     mmga::Ptr{Void}
 end
 
-immutable CFuncType{FLOAT <: CReal}
+type CFuncType{FLOAT <: CReal}
     """ all the information concerning this functional """
     info::Ptr{CFuncInfoType{FLOAT}}
     """ XC_UNPOLARIZED or XC_POLARIZED """
@@ -137,7 +137,7 @@ immutable CFuncType{FLOAT <: CReal}
     params::Ptr{Void}
 end
 
-immutable CFunctionalKey
+type CFunctionalKey
     """ Name of the functional """
     name::NTuple{256, Cchar}
     """ Key associated with the functional """

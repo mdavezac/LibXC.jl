@@ -34,4 +34,36 @@ const FUNCTIONALS = let
     result
 end
 
+abstract AbstractXCFunctional
+abstract AbstractLibXCFunctional <: AbstractXCFunctional
+
+type XCFunctional <: AbstractLibXCFunctional
+    c_ptr::Ptr{CFuncType{Cdouble}}
+    XCFunctional(ptr::Ptr{CFuncType{Cdouble}}) = new(ptr)
+end
+
+function XCFunctional(name::Symbol, spin_polarized::Bool=true)
+    name ∉ keys(FUNCTIONALS) && error("Functional $name does not exist")
+    ptr = ccall((:xc_func_alloc, libxc), Ptr{CFuncType{Cdouble}}, ())
+    functional = XCFunctional(ptr)
+    ccall((:xc_func_init, libxc), Cint, (Ptr{CFuncType{Cdouble}}, Cint, Cint),
+          ptr, FUNCTIONALS[name], spin_polarized ? 2: 1)
+    finalizer(functional, _delete_libxc_functional)
+    functional
+end
+
+function _functional_type(func::AbstractLibXCFunctional)
+    func_type = ccall((:xc_func_get_info, libxc), Ptr{CFuncInfoType{Cdouble}},
+                      (Ptr{CFuncType{Cdouble}}, ), func.c_ptr)
+    unsafe_load(func_type)
+end
+
+@eval function _delete_libxc_functional(func::AbstractLibXCFunctional)
+    if func.c_ptr ≠ C_NULL
+        ccall((:xc_func_end, $libxc), Void, (Ptr{CFuncType},), func.c_ptr)
+        ccall((:xc_func_free, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
+    end
+end
+
+
 end # module
