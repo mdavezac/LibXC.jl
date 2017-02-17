@@ -1,4 +1,5 @@
 module LibXC
+export name
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -52,7 +53,7 @@ function XCFunctional(name::Symbol, spin_polarized::Bool=true)
     functional
 end
 
-function _functional_type(func::AbstractLibXCFunctional)
+function _func_info(func::AbstractLibXCFunctional)
     func_type = ccall((:xc_func_get_info, libxc), Ptr{CFuncInfoType{Cdouble}},
                       (Ptr{CFuncType{Cdouble}}, ), func.c_ptr)
     unsafe_load(func_type)
@@ -64,6 +65,8 @@ function _delete_libxc_functional(func::AbstractLibXCFunctional)
         ccall((:xc_func_free, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
     end
 end
+
+name(func::AbstractLibXCFunctional) = unsafe_string(_func_info(func).name)
 
 
 end # module

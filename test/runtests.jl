@@ -15,6 +15,7 @@ functionals =  [:lda_x => "Slater exchange",
     func = LibXC.XCFunctional(symb, true)
     info_ptr = unsafe_load(unsafe_load(func.c_ptr).info)
     @test unsafe_string(info_ptr.name) == name
+    @test LibXC.name(func) == name
 end
 
 end
