@@ -58,9 +58,9 @@ function _functional_type(func::AbstractLibXCFunctional)
     unsafe_load(func_type)
 end
 
-@eval function _delete_libxc_functional(func::AbstractLibXCFunctional)
+function _delete_libxc_functional(func::AbstractLibXCFunctional)
     if func.c_ptr ≠ C_NULL
-        ccall((:xc_func_end, $libxc), Void, (Ptr{CFuncType},), func.c_ptr)
+        ccall((:xc_func_end, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
         ccall((:xc_func_free, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
     end
 end
