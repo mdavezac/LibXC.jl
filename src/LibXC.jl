@@ -1,5 +1,5 @@
 module LibXC
-export name
+export description, kind, family, flags, citations, spin
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -9,6 +9,16 @@ end
 
 include("structures.jl")
 include("constants.jl")
+
+""" Holds citation data """
+immutable Citation
+    ref::String
+    doi::String
+    bibtex::String
+end
+Base.show(io::IO, x::Citation) = show(io, x.ref)
+
+
 
 const LIB_VERSION = let
     version = Cint[0, 0, 0]
@@ -52,6 +62,10 @@ function XCFunctional(name::Symbol, spin_polarized::Bool=true)
     finalizer(functional, _delete_libxc_functional)
     functional
 end
+function XCFunctional(name::Symbol, spin::Constants.SPIN)
+    XCFunctional(name, spin == Constants.polarized)
+end
+XCFunctional(n::Symbol, spin::Integer) = XCFunctional(n, convert(Constants.SPIN, spin))
 
 function _func_info(func::AbstractLibXCFunctional)
     func_type = ccall((:xc_func_get_info, libxc), Ptr{CFuncInfoType{Cdouble}},
@@ -66,7 +80,44 @@ function _delete_libxc_functional(func::AbstractLibXCFunctional)
     end
 end
 
-name(func::AbstractLibXCFunctional) = unsafe_string(_func_info(func).name)
+description(info::CFuncInfoType) = unsafe_string(info.name)
+""" Integer key of the functional """
+libkey(info::CFuncInfoType) = info.number
+""" Whether Exchange, Correlation, or Exchange-Correlation """
+kind(info::CFuncInfoType) = convert(Constants.KIND, info.kind)
+""" Whether LDA, GGA, etc """
+family(info::CFuncInfoType) = convert(Constants.FAMILY, info.family)
+""" Spin polarization """
+spin(func::CFuncType) = convert(Constants.SPIN, func.nspin)
+
+""" Set of flags describing the functional """
+function flags(func::CFuncInfoType)
+    result = Set{Constants.FLAGS}()
+    for flag in Base.instances(Constants.FLAGS)
+        (convert(Cint, flag) & func.flags) ≠ 0 && push!(result, flag)
+    end
+    result
+end
+
+""" List of journal references """
+function citations(info::CFuncInfoType)
+    result = Citation[]
+    for ptr in info.refs
+        ptr == C_NULL && break
+        ref = unsafe_load(ptr)
+        push!(result, Citation(unsafe_string(ref.ref), unsafe_string(ref.doi),
+                               unsafe_string(ref.bibtex)))
+    end
+    result
+end
+
+description(func::AbstractLibXCFunctional) = description(_func_info(func))
+libkey(func::AbstractLibXCFunctional) = libkey(_func_info(func))
+kind(func::AbstractLibXCFunctional) = kind(_func_info(func))
+family(func::AbstractLibXCFunctional) = family(_func_info(func))
+flags(func::AbstractLibXCFunctional) = flags(_func_info(func))
+citations(func::AbstractLibXCFunctional) = citations(_func_info(func))
+spin(func::AbstractLibXCFunctional) = convert(Constants.SPIN, unsafe_load(func.c_ptr).nspin)
 
 
 end # module

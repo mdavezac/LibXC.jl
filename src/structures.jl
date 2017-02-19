@@ -19,7 +19,7 @@ type CFuncInfoType{FLOAT <: CReal}
     family::Cint
 
     """ index of the references """
-    refs::Ptr{Ptr{CFuncReferenceType}}
+    refs::NTuple{5, Ptr{CFuncReferenceType}}
 
     flags::Cint
 
