@@ -73,6 +73,7 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         ρ = input[:ρ_a] + input[:ρ_b]
         @test energy(:lda_x, ρ) ≈ expected[:ε]
         @test potential(:lda_x, ρ) ≈ expected[:v]
+        @test second_energy_derivative(:lda_x, ρ) ≈ expected[:δv]
     else
         expected = DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)],
                              [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
@@ -80,6 +81,8 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         ρs = vcat(input[:ρ_a]', input[:ρ_b]')
         @test energy(:lda_x, ρs) ≈ expected[:ε]
         @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
+        δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
+        @test second_energy_derivative(:lda_x, ρs) ≈ δv
     end
 end
 

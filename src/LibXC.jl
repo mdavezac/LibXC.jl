@@ -1,6 +1,6 @@
 module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
-export potential, potential!
+export potential, potential!, second_energy_derivative, third_energy_derivative
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -121,47 +121,53 @@ flags(func::AbstractLibXCFunctional) = flags(_func_info(func))
 citations(func::AbstractLibXCFunctional) = citations(_func_info(func))
 spin(func::AbstractLibXCFunctional) = convert(Constants.SPIN, unsafe_load(func.c_ptr).nspin)
 
-""" Determines the size of the energy from the size of ρ and spin polarization """
-function εxc_size(polarized::Bool, dims::NTuple)
-    if length(dims) == 0
-        throw(ArgumentError("Empty size tuple"))
-    elseif !polarized
-        dims
-    elseif length(dims) == 1 && polarized
-        if dims[1] % 2 ≠ 0
-            throw(ArgumentError("Odd array size for polarized functional"))
+for (name, factor) ∈ [(:εxc_size, 1), (:fxc_size, 3), (:kxc_size, 4)]
+    @eval begin
+        function $name(polarized::Bool, dims::NTuple)
+            if length(dims) == 0
+                throw(ArgumentError("Empty size tuple"))
+            elseif !polarized
+                dims
+            elseif length(dims) == 1 && polarized
+                if dims[1] % 2 ≠ 0
+                    throw(ArgumentError("Odd array size for polarized functional"))
+                end
+                warn("Spin polarized function, but dimensionality of ρ is 1")
+                $(factor == 1 ? :(dims[1]/2,): :(($factor * dims[1]/2,)))
+            elseif dims[1] == 2
+                $(factor == 1 ? :(dims[2:end]): :(($factor, dims[2:end]...)))
+            else
+                throw(ArgumentError("Spin polarization expects size(ρ, 1) == 2"))
+            end
         end
-        warn("Spin polarized function, but dimensionality of ρ is 1")
-        (dims[1]/2,)
-    elseif dims[1] == 2
-        dims[2:end]
-    else
-        throw(ArgumentError("Spin polarization expects size(ρ, 2) == 2"))
+        $name(func::AbstractLibXCFunctional, ρ::DenseArray) = $name(spin(func), size(ρ))
+        $name(s::Constants.SPIN, dims::NTuple) = $name(s == Constants.polarized, dims)
+        $name(s::Union{Bool, Constants.SPIN}, ρ::DenseArray) = $name(s, size(ρ))
     end
 end
-εxc_size(func::AbstractLibXCFunctional, ρ::DenseArray) = εxc_size(spin(func), size(ρ))
-εxc_size(s::Constants.SPIN, dims::NTuple) = εxc_size(s == Constants.polarized, dims)
-εxc_size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray) = εxc_size(s, size(ρ))
 
 
-for (funcname, name, sizer) ∈ [(:xc_lda_exc, :energy, :(εxc_size(func, ρ))),
-                               (:xc_lda_vxc, :potential, :(size(ρ)))]
+for (funcname, name, sizer) ∈ [
+        (:xc_lda_exc, :energy, :(εxc_size(func, ρ))),
+        (:xc_lda_vxc, :potential, :(size(ρ))),
+        (:xc_lda_fxc, :second_energy_derivative, :(fxc_size(func, ρ))),
+        (:xc_lda_kxc, :third_energy_derivative, :(kxc_size(func, ρ)))]
     local name! = Symbol("$(name)!")
     @eval begin
         function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-                        $name::DenseArray{Cdouble})
+                        output::DenseArray{Cdouble})
             if family(func) ≠ Constants.lda
                 msg = "Incorrect number of arguments: input is not an LDA functional"
                 throw(ArgumentError(msg))
             end
-            if size($name) ≠ $sizer
+            if size(output) ≠ $sizer
                 throw(ArgumentError("sizes of ρ and input are incompatible"))
             end
 
             ccall(($(parse(":$funcname")), libxc), Void,
                   (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
-                  func.c_ptr, length(ρ), ρ, $name)
-            $name
+                  func.c_ptr, length(ρ), ρ, output)
+            output
         end
 
         function $name!(name::Symbol, ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
