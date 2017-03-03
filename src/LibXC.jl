@@ -83,6 +83,8 @@ function _delete_libxc_functional(func::AbstractLibXCFunctional{Cdouble})
     end
 end
 
+
+""" Long name/description of a functional """
 description(info::CFuncInfoType) = unsafe_string(info.name)
 """ Integer key of the functional """
 libkey(info::CFuncInfoType) = info.number
@@ -121,6 +123,11 @@ family(func::AbstractLibXCFunctional) = family(_func_info(func))
 flags(func::AbstractLibXCFunctional) = flags(_func_info(func))
 citations(func::AbstractLibXCFunctional) = citations(_func_info(func))
 spin(func::AbstractLibXCFunctional) = convert(Constants.SPIN, unsafe_load(func.c_ptr).nspin)
+citations(name::Symbol) = citations(XCFunctional(name))
+description(name::Symbol) = description(XCFunctional(name))
+libkey(name::Symbol) = libkey(XCFunctional(name))
+kind(name::Symbol) = kind(XCFunctional(name))
+family(name::Symbol) = family(XCFunctional(name))
 
 for (name, factor) ∈ [(:esize, 1), (:vsize, 2), (:fsize, 3), (:ksize, 4)]
     @eval begin
