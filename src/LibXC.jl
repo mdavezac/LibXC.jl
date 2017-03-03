@@ -143,43 +143,27 @@ end
 εxc_size(s::Constants.SPIN, dims::NTuple) = εxc_size(s == Constants.polarized, dims)
 εxc_size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray) = εxc_size(s, size(ρ))
 
-""" LDA energies for a given array of polarized or unpolarized densities """
-function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-                 εxc::DenseArray{Cdouble})
-    if family(func) ≠ Constants.lda
-        msg = "Incorrect number of arguments: input is not an LDA functional"
-        throw(ArgumentError(msg))
-    end
-    if size(εxc) ≠ εxc_size(func, ρ)
-        throw(ArgumentError("sizes of ρ and εxc are incompatible"))
-    end
 
-    ccall((:xc_lda_exc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
-          func.c_ptr, length(ρ), ρ, εxc)
-    εxc
-end
-
-""" LDA potential for a given array of polarized or unpolarized densities """
-function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-                    potential::DenseArray{Cdouble})
-    if family(func) ≠ Constants.lda
-        msg = "Incorrect number of arguments: input is not an LDA functional"
-        throw(ArgumentError(msg))
-    end
-    if size(potential) ≠ size(ρ)
-        throw(ArgumentError("sizes of ρ and potential are incompatible"))
-    end
-
-    ccall((:xc_lda_vxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
-          func.c_ptr, length(ρ), ρ, potential)
-    potential
-end
-
-for name ∈ [:energy, :potential]
+for (funcname, name, sizer) ∈ [(:xc_lda_exc, :energy, :(εxc_size(func, ρ))),
+                               (:xc_lda_vxc, :potential, :(size(ρ)))]
     local name! = Symbol("$(name)!")
     @eval begin
+        function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
+                        $name::DenseArray{Cdouble})
+            if family(func) ≠ Constants.lda
+                msg = "Incorrect number of arguments: input is not an LDA functional"
+                throw(ArgumentError(msg))
+            end
+            if size($name) ≠ $sizer
+                throw(ArgumentError("sizes of ρ and input are incompatible"))
+            end
+
+            ccall(($(parse(":$funcname")), libxc), Void,
+                  (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+                  func.c_ptr, length(ρ), ρ, $name)
+            $name
+        end
+
         function $name!(name::Symbol, ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
             $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, $name)
         end
@@ -191,13 +175,10 @@ for name ∈ [:energy, :potential]
         function $name(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray)
             $name(XCFunctional(name, s), ρ)
         end
+        function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
+            $name!(func, ρ, similar(ρ, eltype(ρ), $sizer))
+        end
     end
 end
-
-""" LDA energies for a given array of polarized or unpolarized densities """
-function energy(func::AbstractLibXCFunctional, ρ::DenseArray)
-    energy!(func, ρ, similar(ρ, eltype(ρ), εxc_size(func, ρ)))
-end
-potential(func::AbstractLibXCFunctional, ρ::DenseArray) = potential!(func, ρ, similar(ρ))
 
 end # module
