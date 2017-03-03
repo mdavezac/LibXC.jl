@@ -42,14 +42,14 @@ functionals =  [
     @test LibXC.libkey(func) == stuff[:libkey]
     @test LibXC.spin(func) == stuff[:spin]
 
-    @test LibXC.εxc_size(true, (2, 5)) == (5,)
-    @test LibXC.εxc_size(false, (2, 5)) == (2, 5)
-    @test LibXC.εxc_size(true, (6,)) == (3,)
-    @test LibXC.εxc_size(false, (6,)) == (6,)
-    @test_throws ArgumentError LibXC.εxc_size(true, (5,))
-    @test_throws ArgumentError LibXC.εxc_size(true, ())
-    @test_throws ArgumentError LibXC.εxc_size(false, ())
-    @test_throws ArgumentError LibXC.εxc_size(true, (3, 2))
+    @test LibXC.esize(true, (2, 5)) == (5,)
+    @test LibXC.esize(false, (2, 5)) == (2, 5)
+    @test LibXC.esize(true, (6,)) == (3,)
+    @test LibXC.esize(false, (6,)) == (6,)
+    @test_throws ArgumentError LibXC.esize(true, (5,))
+    @test_throws ArgumentError LibXC.esize(true, ())
+    @test_throws ArgumentError LibXC.esize(false, ())
+    @test_throws ArgumentError LibXC.esize(true, (3, 2))
 end
 
 files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
@@ -74,6 +74,16 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         @test energy(:lda_x, ρ) ≈ expected[:ε]
         @test potential(:lda_x, ρ) ≈ expected[:v]
         @test second_energy_derivative(:lda_x, ρ) ≈ expected[:δv]
+
+        func = XCFunctional(:lda_x, false)
+        εxc, pot = energy_and_potential(func, ρ)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ expected[:v]
+
+        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρ)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ expected[:v]
+        @test second_deriv ≈ expected[:δv]
     else
         expected = DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)],
                              [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
@@ -83,6 +93,16 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
         δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
         @test second_energy_derivative(:lda_x, ρs) ≈ δv
+
+        func = XCFunctional(:lda_x, true)
+        εxc, pot = energy_and_potential(func, ρs)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
+
+        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρs)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
+        @test second_deriv ≈ δv
     end
 end
 
