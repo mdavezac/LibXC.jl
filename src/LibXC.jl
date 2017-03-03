@@ -1,5 +1,5 @@
 module LibXC
-export description, kind, family, flags, citations, spin
+export description, kind, family, flags, citations, spin, energy, energy!
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -46,19 +46,20 @@ const FUNCTIONALS = let
 end
 
 abstract AbstractXCFunctional
-abstract AbstractLibXCFunctional <: AbstractXCFunctional
+abstract AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional
 
-type XCFunctional <: AbstractLibXCFunctional
-    c_ptr::Ptr{CFuncType{Cdouble}}
-    XCFunctional(ptr::Ptr{CFuncType{Cdouble}}) = new(ptr)
+type XCFunctional{T <: CReal} <: AbstractLibXCFunctional{T}
+    c_ptr::Ptr{CFuncType{T}}
+    XCFunctional(ptr::Ptr{CFuncType{T}}) = new(ptr)
 end
 
 function XCFunctional(name::Symbol, spin_polarized::Bool=true)
     name ∉ keys(FUNCTIONALS) && error("Functional $name does not exist")
     ptr = ccall((:xc_func_alloc, libxc), Ptr{CFuncType{Cdouble}}, ())
-    functional = XCFunctional(ptr)
-    ccall((:xc_func_init, libxc), Cint, (Ptr{CFuncType{Cdouble}}, Cint, Cint),
-          ptr, FUNCTIONALS[name], spin_polarized ? 2: 1)
+    functional = XCFunctional{Cdouble}(ptr)
+    err = ccall((:xc_func_init, libxc), Cint, (Ptr{CFuncType{Cdouble}}, Cint, Cint),
+                ptr, FUNCTIONALS[name], spin_polarized ? 2: 1)
+    err ≠ 0 && error("Error $err encountered in LibXC")
     finalizer(functional, _delete_libxc_functional)
     functional
 end
@@ -67,13 +68,13 @@ function XCFunctional(name::Symbol, spin::Constants.SPIN)
 end
 XCFunctional(n::Symbol, spin::Integer) = XCFunctional(n, convert(Constants.SPIN, spin))
 
-function _func_info(func::AbstractLibXCFunctional)
+function _func_info(func::AbstractLibXCFunctional{Cdouble})
     func_type = ccall((:xc_func_get_info, libxc), Ptr{CFuncInfoType{Cdouble}},
                       (Ptr{CFuncType{Cdouble}}, ), func.c_ptr)
     unsafe_load(func_type)
 end
 
-function _delete_libxc_functional(func::AbstractLibXCFunctional)
+function _delete_libxc_functional(func::AbstractLibXCFunctional{Cdouble})
     if func.c_ptr ≠ C_NULL
         ccall((:xc_func_end, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
         ccall((:xc_func_free, libxc), Void, (Ptr{CFuncType},), func.c_ptr)
@@ -119,5 +120,63 @@ flags(func::AbstractLibXCFunctional) = flags(_func_info(func))
 citations(func::AbstractLibXCFunctional) = citations(_func_info(func))
 spin(func::AbstractLibXCFunctional) = convert(Constants.SPIN, unsafe_load(func.c_ptr).nspin)
 
+""" Determines the size of the energy from the size of ρ and spin polarization """
+function εxc_size(polarized::Bool, dims::NTuple)
+    if length(dims) == 0
+        throw(ArgumentError("Empty size tuple"))
+    elseif !polarized
+        dims
+    elseif length(dims) == 1 && polarized
+        if dims[1] % 2 ≠ 0
+            throw(ArgumentError("Odd array size for polarized functional"))
+        end
+        warn("Spin polarized function, but dimensionality of ρ is 1")
+        (dims[1]/2,)
+    elseif dims[1] == 2
+        dims[2:end]
+    else
+        throw(ArgumentError("Spin polarization expects size(ρ, 2) == 2"))
+    end
+end
+εxc_size(func::AbstractLibXCFunctional, ρ::DenseArray) = εxc_size(spin(func), size(ρ))
+εxc_size(s::Constants.SPIN, dims::NTuple) = εxc_size(s == Constants.polarized, dims)
+εxc_size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray) = εxc_size(s, size(ρ))
+
+""" LDA energies for a given array of polarized or unpolarized densities """
+function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
+                 εxc::DenseArray{Cdouble})
+    if family(func) ≠ Constants.lda
+        msg = "Incorrect number of arguments: input is not an LDA functional"
+        throw(ArgumentError(msg))
+    end
+    if size(εxc) ≠ εxc_size(func, ρ)
+        throw(ArgumentError("sizes of ρ and εxc are incompatible"))
+    end
+
+    ccall((:xc_lda_exc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ), ρ, εxc)
+    εxc
+end
+
+function energy!(name::Symbol, ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
+    energy!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, εxc)
+end
+function energy!(name::Symbol, s::Constants.SPIN,
+                 ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
+    energy!(XCFunctional(name, s), ρ, εxc)
+end
+function energy!(name::Symbol, s::Bool, ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
+    energy(name, s ? Constants.polarized: Constants.unpolarized, ρ, εxc)
+end
+
+""" LDA energies for a given array of polarized or unpolarized densities """
+function energy(func::AbstractLibXCFunctional, ρ::DenseArray)
+    energy!(func, ρ, similar(ρ, eltype(ρ), εxc_size(func, ρ)))
+end
+energy(name::Symbol, ρ::DenseArray) = energy(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ)
+function energy(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray)
+    energy(XCFunctional(name, s), ρ)
+end
 
 end # module
