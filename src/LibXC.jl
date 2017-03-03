@@ -1,5 +1,6 @@
 module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
+export potential, potential!
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -159,24 +160,44 @@ function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble}
     εxc
 end
 
-function energy!(name::Symbol, ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
-    energy!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, εxc)
+""" LDA potential for a given array of polarized or unpolarized densities """
+function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
+                    potential::DenseArray{Cdouble})
+    if family(func) ≠ Constants.lda
+        msg = "Incorrect number of arguments: input is not an LDA functional"
+        throw(ArgumentError(msg))
+    end
+    if size(potential) ≠ size(ρ)
+        throw(ArgumentError("sizes of ρ and potential are incompatible"))
+    end
+
+    ccall((:xc_lda_vxc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ), ρ, potential)
+    potential
 end
-function energy!(name::Symbol, s::Constants.SPIN,
-                 ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
-    energy!(XCFunctional(name, s), ρ, εxc)
-end
-function energy!(name::Symbol, s::Bool, ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble})
-    energy(name, s ? Constants.polarized: Constants.unpolarized, ρ, εxc)
+
+for name ∈ [:energy, :potential]
+    local name! = Symbol("$(name)!")
+    @eval begin
+        function $name!(name::Symbol, ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
+            $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, $name)
+        end
+        function $name!(name::Symbol, s::Union{Constants.SPIN, Bool},
+                        ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
+            $name!(XCFunctional(name, s), ρ, $name)
+        end
+        $name(name::Symbol, ρ::DenseArray) = $name(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ)
+        function $name(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray)
+            $name(XCFunctional(name, s), ρ)
+        end
+    end
 end
 
 """ LDA energies for a given array of polarized or unpolarized densities """
 function energy(func::AbstractLibXCFunctional, ρ::DenseArray)
     energy!(func, ρ, similar(ρ, eltype(ρ), εxc_size(func, ρ)))
 end
-energy(name::Symbol, ρ::DenseArray) = energy(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ)
-function energy(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray)
-    energy(XCFunctional(name, s), ρ)
-end
+potential(func::AbstractLibXCFunctional, ρ::DenseArray) = potential!(func, ρ, similar(ρ))
 
 end # module
