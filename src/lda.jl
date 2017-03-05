@@ -1,8 +1,7 @@
-for (funcname, name, sizer) ∈ [
-                                 (:xc_lda_exc, :energy, :esize),
-                                 (:xc_lda_vxc, :potential, :vsize),
-                                 (:xc_lda_fxc, :second_energy_derivative, :fsize),
-                                 (:xc_lda_kxc, :third_energy_derivative, :ksize)]
+for (funcname, name, sizer) ∈ [ (:xc_lda_exc, :energy, :esize),
+                                (:xc_lda_vxc, :potential, :vsize),
+                                (:xc_lda_fxc, :second_energy_derivative, :fsize),
+                                (:xc_lda_kxc, :third_energy_derivative, :ksize)]
     local name! = Symbol("$(name)!")
     @eval begin
         function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
