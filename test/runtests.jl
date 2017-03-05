@@ -52,24 +52,34 @@ functionals =  [
     @test_throws ArgumentError LibXC.esize(true, (3, 2))
 end
 
-files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
-@testset "> LDA $name" for name in files
-    input_data_file = joinpath(dirname(Base.source_path()), "data", split(name, '.')[2])
-    expected_data_file = joinpath(dirname(Base.source_path()), "data", name)
+function input_data(name::String)
+    data_file = joinpath(dirname(Base.source_path()), "data", name)
 
     input = (map(x -> parse(Float64, x), split(v))
-             for v in readlines(input_data_file)[2:end])
+             for v in readlines(data_file)[2:end])
     input = transpose(hcat(input...))
     input = DataFrame(Any[input[:, i] for i in 1:size(input, 2)],
                       [:ρ_a, :ρ_b, :σ_aa, :σ_ab, :σ_bb, :δ_a, :δ_b, :τ_a, :τ_b])
+end
 
+function expected_data(name::String)
+    data_file = joinpath(dirname(Base.source_path()), "data", name)
     expected = (map(x -> parse(Float64, x), split(v))
-               for v in readlines(expected_data_file)[3:end])
+                for v in readlines(data_file)[3:end])
     expected = transpose(hcat(expected...))
     if size(expected, 2) == 3
-        expected = DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)],
-                             [:ε, :v, :δv])
+        DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)], [:ε, :v, :δv])
+    else
+        DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)],
+                  [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
+    end
+end
 
+@testset "> LDA" begin
+    input = input_data("BrOH")
+
+    @testset ">> Unpolarizated " begin
+        expected = expected_data("lda_x.BrOH.unpol.dat")
         ρ = input[:ρ_a] + input[:ρ_b]
         @test energy(:lda_x, ρ) ≈ expected[:ε]
         @test potential(:lda_x, ρ) ≈ expected[:v]
@@ -84,9 +94,10 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         @test εxc ≈ expected[:ε]
         @test pot ≈ expected[:v]
         @test second_deriv ≈ expected[:δv]
-    else
-        expected = DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)],
-                             [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
+    end
+
+    @testset ">> Polarized" begin
+        expected = expected_data("lda_x.BrOH.pol.dat")
 
         ρs = vcat(input[:ρ_a]', input[:ρ_b]')
         @test energy(:lda_x, ρs) ≈ expected[:ε]
@@ -105,7 +116,5 @@ files = ["lda_x.BrOH.unpol.dat", "lda_x.BrOH.pol.dat"]
         @test second_deriv ≈ δv
     end
 end
-
-
 
 end
