@@ -20,19 +20,28 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
             output
         end
 
-        function $name!(name::Symbol, ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
-            $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, $name)
-        end
-        function $name!(name::Symbol, s::Union{Constants.SPIN, Bool},
-                        ρ::DenseArray{Cdouble}, $name::DenseArray{Cdouble})
-            $name!(XCFunctional(name, s), ρ, $name)
-        end
-        $name(name::Symbol, ρ::DenseArray) = $name(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ)
-        function $name(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray)
-            $name(XCFunctional(name, s), ρ)
-        end
         function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
             $name!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, $factor)))
+        end
+    end
+end
+
+# Adds simplifying overloads
+for name ∈ [:energy, :potential,:second_energy_derivative, :third_energy_derivative]
+    local name! = Symbol("$(name)!")
+    @eval begin
+        function $name!(name::Symbol, ρ::DenseArray{Cdouble}, args...)
+            $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
+        end
+        function $name!(name::Symbol, s::Union{Constants.SPIN, Bool},
+                        ρ::DenseArray{Cdouble}, args...)
+            $name!(XCFunctional(name, s), ρ, args...)
+        end
+        function $name(name::Symbol, ρ::DenseArray, args...)
+            $name(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
+        end
+        function $name(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray, args...)
+            $name(XCFunctional(name, s), ρ, args...)
         end
     end
 end

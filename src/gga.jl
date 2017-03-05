@@ -18,21 +18,6 @@ function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble}
     output
 end
 
-function energy!(name::Symbol, ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
-                 energy::DenseArray{Cdouble})
-    energy!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ, energy)
-end
-function energy!(name::Symbol, s::Union{Constants.SPIN, Bool}, ρ::DenseArray{Cdouble},
-                 σ::DenseArray{Cdouble},
-                 energy::DenseArray{Cdouble})
-    energy!(XCFunctional(name, s), ρ, σ, energy)
-end
-function energy(name::Symbol, ρ::DenseArray, σ::DenseArray)
-    energy(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ)
-end
-function energy(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray, σ::DenseArray)
-    energy(XCFunctional(name, s), ρ, σ)
-end
 function energy(func::AbstractLibXCFunctional, ρ::DenseArray, σ::DenseArray)
     energy!(func, ρ, σ, similar(ρ, eltype(ρ), esize(func, ρ)))
 end
@@ -62,22 +47,6 @@ function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdoub
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, pot_rho, pot_sigma)
     GGAPotential(pot_rho, pot_sigma)
-end
-function potential!(name::Symbol, ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
-                    pot_rho::DenseArray{Cdouble}, pot_sigma::DenseArray{Cdouble})
-    potential!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ, pot_rho, pot_sigma)
-end
-function potential!(name::Symbol, s::Union{Constants.SPIN, Bool}, ρ::DenseArray{Cdouble},
-                    σ::DenseArray{Cdouble}, pot_rho::DenseArray{Cdouble},
-                    pot_sigma::DenseArray{Cdouble})
-    potential!(XCFunctional(name, s), ρ, σ, pot_rho, pot_sigma)
-end
-function potential(name::Symbol, ρ::DenseArray, σ::DenseArray)
-    potential(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ)
-end
-function potential(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray,
-                   σ::DenseArray)
-    potential(XCFunctional(name, s), ρ, σ)
 end
 function potential(func::AbstractLibXCFunctional, ρ::DenseArray, σ::DenseArray)
     potential!(func, ρ, σ, similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)))
@@ -118,28 +87,6 @@ function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
           func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, deriv_rho,
           deriv_rho_sigma, deriv_sigma)
     GGASecondDerivative(deriv_rho, deriv_rho_sigma, deriv_sigma)
-end
-function second_energy_derivative!(name::Symbol, ρ::DenseArray{Cdouble},
-                                   σ::DenseArray{Cdouble}, deriv_rho::DenseArray{Cdouble},
-                                   deriv_rho_sigma::DenseArray{Cdouble},
-                                   deriv_sigma::DenseArray{Cdouble})
-    second_energy_derivative!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ, deriv_rho,
-                              deriv_rho_sigma, deriv_sigma)
-end
-function second_energy_derivative!(name::Symbol, s::Union{Constants.SPIN, Bool},
-                                   ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
-                                   deriv_rho::DenseArray{Cdouble},
-                                   deriv_rho_sigma::DenseArray{Cdouble},
-                                   deriv_sigma::DenseArray{Cdouble})
-    second_energy_derivative!(XCFunctional(name, s), ρ, σ, deriv_rho, deriv_rho_sigma,
-                              deriv_sigma)
-end
-function second_energy_derivative(name::Symbol, ρ::DenseArray, σ::DenseArray)
-    second_energy_derivative(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, σ)
-end
-function second_energy_derivative(name::Symbol, s::Union{Bool, Constants.SPIN},
-                                  ρ::DenseArray, σ::DenseArray)
-    second_energy_derivative(XCFunctional(name, s), ρ, σ)
 end
 function second_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray,
                                   σ::DenseArray)
