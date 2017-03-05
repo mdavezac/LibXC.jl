@@ -3,6 +3,8 @@ export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
 export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional
 
+using NamedTuples: @NT
+
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
 else
@@ -129,6 +131,37 @@ libkey(name::Symbol) = libkey(XCFunctional(name))
 kind(name::Symbol) = kind(XCFunctional(name))
 family(name::Symbol) = family(XCFunctional(name))
 
+function Base.size(polarized::Bool, dims::NTuple, factor::Integer)
+    if length(dims) == 0
+        throw(ArgumentError("Empty size tuple"))
+    elseif !polarized
+        dims
+    elseif length(dims) == 1 && polarized
+        if dims[1] % 2 ≠ 0
+            throw(ArgumentError("Odd array size for polarized functional"))
+        end
+        warn("Spin polarized function, but dimensionality of ρ is 1")
+        (factor * dims[1] / 2,)
+    elseif dims[1] == 2
+        if factor == 1
+            dims[2:end]
+        else
+            (factor, dims[2:end]...)
+        end
+    else
+        throw(ArgumentError("Spin polarization expects size(ρ, 1) == 2"))
+    end
+end
+function Base.size(func::AbstractLibXCFunctional, ρ::DenseArray, factor::Integer)
+    Base.size(spin(func), size(ρ), factor)
+end
+function Base.size(s::Constants.SPIN, dims::NTuple, factor::Integer)
+    Base.size(s == Constants.polarized, dims, factor)
+end
+function Base.size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray, factor::Integer)
+    Base.size(s, size(ρ), factor)
+end
+
 for (name, factor) ∈ [(:esize, 1), (:vsize, 2), (:fsize, 3), (:ksize, 4)]
     @eval begin
         function $name(polarized::Bool, dims::NTuple)
@@ -155,4 +188,5 @@ for (name, factor) ∈ [(:esize, 1), (:vsize, 2), (:fsize, 3), (:ksize, 4)]
 end
 
 include("lda.jl")
+include("gga.jl")
 end # module
