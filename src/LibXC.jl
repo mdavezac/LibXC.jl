@@ -1,7 +1,7 @@
 module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
-export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional
+export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga, gga!
 
 using NamedTuples: @NT
 
@@ -130,6 +130,7 @@ description(name::Symbol) = description(XCFunctional(name))
 libkey(name::Symbol) = libkey(XCFunctional(name))
 kind(name::Symbol) = kind(XCFunctional(name))
 family(name::Symbol) = family(XCFunctional(name))
+flags(name::Symbol) = flags(XCFunctional(name))
 
 function Base.size(polarized::Bool, dims::NTuple, factor::Integer)
     if length(dims) == 0

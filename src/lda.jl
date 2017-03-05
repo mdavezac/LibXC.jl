@@ -48,9 +48,7 @@ end
 
 """ All outputs from LDA """
 typealias AllLDA @NT(energy, potential, second_derivative, third_derivative)
-""" Energy and potential from LDA """
-typealias LDAEnergyPotential @NT(energy, potential)
-
+""" LDA energy, first, second, and third derivatives """
 function lda!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
               εxc::DenseArray{Cdouble}, potential::DenseArray{Cdouble},
               second_deriv::DenseArray{Cdouble}, third_deriv::DenseArray{Cdouble})
@@ -80,6 +78,9 @@ function lda!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
     AllLDA(εxc, potential, second_deriv, third_deriv)
 end
 
+""" Energy and potential from LDA """
+typealias LDAEnergyPotential @NT(energy, potential)
+""" LDA energy and first derivative """
 function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                                εxc::DenseArray{Cdouble}, potential::DenseArray{Cdouble})
     if family(func) ≠ Constants.lda
@@ -99,7 +100,7 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
     LDAEnergyPotential(εxc, potential)
 end
 
-for name ∈ [:energy_and_potential, :lda]
+for name ∈ [:energy_and_potential, :lda, :gga]
     local name! = Symbol("$(name)!")
     @eval begin
         function $name!(name::Symbol, ρ::DenseArray{Cdouble}, args...)
