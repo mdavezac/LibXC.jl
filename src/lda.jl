@@ -55,36 +55,53 @@ end
 """ All outputs from LDA """
 typealias AllLDA @NT(energy, potential, second_derivative, third_derivative)
 """ LDA energy, first, second, and third derivatives """
-function lda!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-              εxc::DenseArray{Cdouble}, potential::DenseArray{Cdouble},
-              second_deriv::DenseArray{Cdouble}, third_deriv::DenseArray{Cdouble})
+function lda!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
+                                        ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble},
+                                        outputs::Vararg{T})
     if family(func) ≠ Constants.lda
         msg = "Incorrect number of arguments: input is not an LDA functional"
         throw(ArgumentError(msg))
     end
-    if Constants.fxc ∉ flags(func)
-        error("Functional does not implement third derivatives of the energy")
+
+    if length(outputs) == 0
+        return AllLDA(energy!(func, ρ, εxc), [], [], [])
+    elseif length(outputs) == 1
+        result = energy_and_potential!(func, ρ, εxc, outputs...)
+        return AllLDA(result[1], [], [])
+    end
+    if length(outputs) ∈ (2, 3) && Constants.fxc ∉ flags(func)
+        throw(ArgumentError("Functional does not implement second energy derivative"))
+    elseif length(outputs) == 3 && Constants.kxc ∉ flags(func)
+        throw(ArgumentError("Functional does not implement third energy derivative"))
+    elseif length(outputs) ∉ (2, 3)
+        throw(ArgumentError("Incorrect number of outputs, expected between 1 and 4"))
     end
     if size(εxc) ≠ size(func, ρ, 1)
         throw(ArgumentError("sizes of ρ and εxc are incompatible"))
     end
-    if size(potential) ≠ size(func, ρ, 2)
+    if size(outputs[1]) ≠ size(func, ρ, 2)
         throw(ArgumentError("sizes of ρ and potential are incompatible"))
     end
-    if size(second_deriv) ≠ size(func, ρ, 3)
+    if size(outputs[2]) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and second derivative are incompatible"))
     end
-    if size(third_deriv) ≠ size(func, ρ, 4)
+    if size(outputs[3]) ≠ size(func, ρ, 4)
         throw(ArgumentError("sizes of ρ and third derivative are incompatible"))
     end
+
+    args = tuple(outputs..., (C_NULL for i in 1:(3 - length(outputs)))...)
 
     ccall((:xc_lda, libxc), Void,
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble},
            Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)),
-          ρ, εxc, potential, second_deriv, third_deriv)
+          ρ, εxc, args[1], args[2], args[3])
 
-    AllLDA(εxc, potential, second_deriv, third_deriv)
+    if length(outputs) == 2
+        AllLDA(εxc, outputs..., [], [])
+    else
+        AllLDA(εxc, outputs...)
+    end
 end
 
 """ Energy and potential from LDA """
@@ -133,9 +150,29 @@ function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
     energy_and_potential!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, 1)), similar(ρ))
 end
 function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
-    lda!(func, ρ,
-         similar(ρ, eltype(ρ), size(func, ρ, 1)),
-         similar(ρ, eltype(ρ), size(func, ρ, 2)),
-         similar(ρ, eltype(ρ), size(func, ρ, 3)),
-         similar(ρ, eltype(ρ), size(func, ρ, 4)))
+    if family(func) ≠ Constants.lda
+        throw(ArgumentError("Functional is not a GGA functional"))
+    end
+
+    const f = flags(func)
+    if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
+        lda!(func, ρ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), size(func, ρ, 2)),
+             similar(ρ, eltype(ρ), size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), size(func, ρ, 4)))
+    elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
+        lda!(func, ρ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), size(func, ρ, 2)),
+             similar(ρ, eltype(ρ), size(func, ρ, 3)))
+    elseif Constants.exc ∈ f && Constants.vxc ∈ f
+        lda!(func, ρ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), size(func, ρ, 2)))
+    elseif Constants.exc ∈ f
+        lda!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, 1)))
+    else
+        throw(ArgumentError("Not sure what this functional can do"))
+    end
 end

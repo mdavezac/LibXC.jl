@@ -218,11 +218,10 @@ function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
     elseif length(outputs) == 9 && Constants.kxc ∉ flags(func)
         throw(ArgumentError("Functional does not implement third energy derivative"))
     elseif length(outputs) ∉ (5, 9)
-        throw(ArgumentError("Incorrect number of arguments, expected 0, 2, 5, or 9"))
+        throw(ArgumentError("Incorrect number of outputs, expected 1, 3, 6, or 10"))
     end
 
     if family(func) ≠ Constants.gga
-        msg = "Incorrect number of arguments: input is not a GGA functional"
         throw(ArgumentError("Functional is not a GGA functional"))
     end
 
@@ -263,11 +262,7 @@ function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
         end
     end
 
-    if length(outputs) == 5
-        args = tuple(outputs..., C_NULL, C_NULL, C_NULL, C_NULL)
-    else
-        args = tuple(outputs...)
-    end
+    args = tuple(outputs..., (C_NULL for i in 1:(9 - length(outputs)))...)
 
     ccall((:xc_gga, libxc), Void,
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
@@ -288,7 +283,6 @@ end
 function gga(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
              σ::DenseArray{Cdouble})
     if family(func) ≠ Constants.gga
-        msg = "Input functional is not a GGA functional"
         throw(ArgumentError("Functional is not a GGA functional"))
     end
 
