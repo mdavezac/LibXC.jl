@@ -146,6 +146,14 @@ end
         @test εxc ≈ expected[:ε]
         @test pot_rho ≈ expected[:v_a]
         @test pot_sigma ≈ expected[:v_b]
+
+        all_out = gga(:gga_c_pbe, ρ, σ)
+        @test all_out.energy ≈ expected[:ε]
+        @test all_out.first_rho ≈ expected[:v_a]
+        @test all_out.first_sigma ≈ expected[:v_b]
+        @test all_out.second_rho2 ≈ expected[:δv_aa]
+        @test all_out.second_rho_sigma ≈ expected[:δv_bb]
+        @test all_out.second_sigma2 ≈ expected[:δv_ab]
     end
 
     @testset ">> Polarized" begin
@@ -178,6 +186,20 @@ end
         @test pot_rho ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
         @test pot_sigma ≈ expect
+
+        all_out = gga(:gga_c_pbe, ρs, σs)
+        @test all_out.energy ≈ expected[:ε]
+        @test all_out.first_rho ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
+        expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
+        @test all_out.first_sigma ≈ expect
+        v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        v2sigma = vcat(expected[:v2sigma2_aa_aa]', expected[:v2sigma2_aa_ab]',
+                       expected[:v2sigma2_aa_bb]', expected[:v2sigma2i_ab_ab]',
+                       expected[:v2sigma2_ab_bb]', expected[:v2sigma2_bb_bb]')
+        v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        @test all_out.second_rho2 ≈ v2rho
+        @test all_out.second_rho_sigma ≈ v2rho_sigma
+        @test all_out.second_sigma2 ≈ v2sigma
     end
 end
 

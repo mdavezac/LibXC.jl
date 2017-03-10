@@ -3,12 +3,18 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
                                 (:xc_lda_fxc, :second_energy_derivative, 3),
                                 (:xc_lda_kxc, :third_energy_derivative, 4)]
     local name! = Symbol("$(name)!")
+    local has_it = Dict(:energy => Constants.exc, :potential => Constants.vxc,
+                        :second_energy_derivative => Constants.fxc,
+                        :third_energy_derivative => Constants.kxc)[name]
     @eval begin
         function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                         output::DenseArray{Cdouble})
             if family(func) ≠ Constants.lda
                 msg = "Incorrect number of arguments: input is not an LDA functional"
                 throw(ArgumentError(msg))
+            end
+            if $has_it ∉ flags(func)
+                error("Functional does not implement the $(replace(name, "_", " ")).")
             end
             if size(output) ≠ size(func, ρ, $factor)
                 throw(ArgumentError("sizes of ρ and input are incompatible"))
@@ -55,6 +61,9 @@ function lda!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
     if family(func) ≠ Constants.lda
         msg = "Incorrect number of arguments: input is not an LDA functional"
         throw(ArgumentError(msg))
+    end
+    if Constants.fxc ∉ flags(func)
+        error("Functional does not implement third derivatives of the energy")
     end
     if size(εxc) ≠ size(func, ρ, 1)
         throw(ArgumentError("sizes of ρ and εxc are incompatible"))

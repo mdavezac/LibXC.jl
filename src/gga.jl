@@ -5,6 +5,9 @@ function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble}
         msg = "Incorrect number of arguments: input is not an GGA functional"
         throw(ArgumentError(msg))
     end
+    if Constants.exc ∉ flags(func)
+        error("Functional does not implement the energy")
+    end
     if size(σ) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
     end
@@ -32,6 +35,9 @@ function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdoub
     if family(func) ≠ Constants.gga
         msg = "Incorrect number of arguments: input is not an GGA functional"
         throw(ArgumentError(msg))
+    end
+    if Constants.vxc ∉ flags(func)
+        error("Functional does not implement first derivatives of the energy")
     end
     if size(σ) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
@@ -117,7 +123,7 @@ function third_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
         throw(ArgumentError(msg))
     end
     if Constants.kxc ∉ flags(func)
-        error("Functional does not implement third derivitives of the energy")
+        error("Functional does not implement third derivatives of the energy")
     end
     if size(σ) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
@@ -162,6 +168,9 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
         msg = "Incorrect number of arguments: input is not an LDA functional"
         throw(ArgumentError(msg))
     end
+    if Constants.exc ∉ flags(func) && Constants.vxc ∉ flags(func)
+        error("Functional does not implement energy or potential")
+    end
     if size(σ) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
     end
@@ -193,80 +202,126 @@ end
 typealias AllGGA @NT(energy, first_rho, first_sigma, second_rho2, second_rho_sigma,
                      second_sigma2, third_rho3, third_rho2_sigma, third_rho_sigma3,
                      third_sigma3)
+
 """ GGA energy, first, second, and third derivatives """
-function gga!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-              σ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble},
-              first_rho::DenseArray{Cdouble}, first_sigma::DenseArray{Cdouble},
-              second_rho2::DenseArray{Cdouble}, second_rho_sigma::DenseArray{Cdouble},
-              second_sigma2::DenseArray{Cdouble}, third_rho3::DenseArray{Cdouble},
-              third_rho2_sigma::DenseArray{Cdouble}, third_rho_sigma2::DenseArray{Cdouble},
-              third_sigma3::DenseArray{Cdouble})
+function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
+                                        ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
+                                        εxc::DenseArray{Cdouble}, outputs::Vararg{T})
+    if length(outputs) == 0
+        return AllGGA(energy!(func, ρ, σ, εxc), [], [], [], [], [], [], [], [])
+    elseif length(outputs) == 2
+        result = energy_and_potential!(func, ρ, σ, εxc, outputs...)
+        return AllGGA(result[1], result[2], [], [], [], [], [], [], [])
+    end
+    if length(outputs) ∈ (5, 9) && Constants.fxc ∉ flags(func)
+        throw(ArgumentError("Functional does not implement second energy derivative"))
+    elseif length(outputs) == 9 && Constants.kxc ∉ flags(func)
+        throw(ArgumentError("Functional does not implement third energy derivative"))
+    elseif length(outputs) ∉ (5, 9)
+        throw(ArgumentError("Incorrect number of arguments, expected 0, 2, 5, or 9"))
+    end
+
     if family(func) ≠ Constants.gga
         msg = "Incorrect number of arguments: input is not a GGA functional"
-        throw(ArgumentError(msg))
+        throw(ArgumentError("Functional is not a GGA functional"))
     end
-    if Constants.fxc ∉ flags(func)
-        error("Functional does not implement second derivatives of the energy")
-    end
-    if Constants.kxc ∉ flags(func)
-        error("Functional does not implement third derivitives of the energy")
-    end
+
     if size(σ) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
     end
     if size(εxc) ≠ size(func, ρ, 1)
         throw(ArgumentError("sizes of ρ and εxc are incompatible"))
     end
-    if size(first_rho) ≠ size(ρ)
+
+    if size(outputs[1]) ≠ size(ρ)
         throw(ArgumentError("sizes of ρ and first_rho are incompatible"))
     end
-    if size(first_sigma) ≠ size(func, ρ, 3)
+    if size(outputs[2]) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and first_sigma are incompatible"))
     end
-    if size(second_rho2) ≠ size(func, ρ, 3)
+    if size(outputs[3]) ≠ size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and second_rho2 are incompatible"))
     end
-    if size(second_rho_sigma) ≠ size(func, ρ, 6)
+    if size(outputs[4]) ≠ size(func, ρ, 6)
         throw(ArgumentError("sizes of ρ and secondrho_sigma are incompatible"))
     end
-    if size(second_sigma2) ≠ size(func, ρ, 6)
+    if size(outputs[5]) ≠ size(func, ρ, 6)
         throw(ArgumentError("sizes of ρ and second_sigma2 are incompatible"))
     end
-    if size(third_rho3) ≠ size(func, ρ, 4)
-        throw(ArgumentError("sizes of ρ and third_rho3 are incompatible"))
+    if length(outputs) == 9
+        if  size(outputs[6]) ≠ size(func, ρ, 4)
+            throw(ArgumentError("sizes of ρ and third_rho3 are incompatible"))
+        end
+        if size(outputs[7]) ≠ size(func, ρ, 9)
+            throw(ArgumentError("sizes of ρ and third_rho2_sigma are incompatible"))
+        end
+        if size(outputs[8]) ≠ size(func, ρ, 12)
+            throw(ArgumentError("sizes of ρ and third_rho_sigma2 are incompatible"))
+        end
+        if size(outputs[9]) ≠ size(func, ρ, 10)
+            throw(ArgumentError("sizes of ρ and third_sigma3 are incompatible"))
+        end
     end
-    if size(third_rho2_sigma) ≠ size(func, ρ, 9)
-        throw(ArgumentError("sizes of ρ and third_rho2_sigma are incompatible"))
-    end
-    if size(third_rho_sigma2) ≠ size(func, ρ, 12)
-        throw(ArgumentError("sizes of ρ and third_rho_sigma2 are incompatible"))
-    end
-    if size(third_sigma3) ≠ size(func, ρ, 10)
-        throw(ArgumentError("sizes of ρ and third_sigma3 are incompatible"))
+
+    if length(outputs) == 5
+        args = tuple(outputs..., C_NULL, C_NULL, C_NULL, C_NULL)
+    else
+        args = tuple(outputs...)
     end
 
     ccall((:xc_gga, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
-           Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
-           Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+           Ptr{Cdouble}, Ptr{Cdouble},
+           Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+           Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)),
-          ρ, σ, εxc, first_rho, first_sigma, second_rho2, second_rho_sigma, second_sigma2,
-          third_rho3, third_rho2_sigma, third_rho_sigma2, third_sigma3)
+          ρ, σ, εxc, args[1], args[2], args[3], args[4], args[5], args[6], args[7],
+          args[8], args[9])
 
-    AllGGA(εxc, first_rho, first_sigma, second_rho2, second_rho_sigma, second_sigma2,
-           third_rho3, third_rho2_sigma, third_rho_sigma2, third_sigma3)
+    if length(outputs) == 5
+        AllGGA(εxc, outputs..., [], [], [], [])
+    else
+        AllGGA(εxc, outputs...)
+    end
 end
 
 function gga(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
              σ::DenseArray{Cdouble})
-    gga!(func, ρ, σ,
-         similar(ρ, eltype(ρ), size(func, ρ, 1)),
-         similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)),
-         similar(ρ, eltype(ρ), size(func, ρ, 3)),
-         similar(ρ, eltype(ρ), size(func, ρ, 6)),
-         similar(ρ, eltype(ρ), size(func, ρ, 6)),
-         similar(ρ, eltype(ρ), size(func, ρ, 4)),
-         similar(ρ, eltype(ρ), size(func, ρ, 9)),
-         similar(ρ, eltype(ρ), size(func, ρ, 12)),
-         similar(ρ, eltype(ρ), size(func, ρ, 10)))
+    if family(func) ≠ Constants.gga
+        msg = "Input functional is not a GGA functional"
+        throw(ArgumentError("Functional is not a GGA functional"))
+    end
+
+    const f = flags(func)
+    if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
+        gga!(func, ρ, σ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), size(func, ρ, 6)),
+             similar(ρ, eltype(ρ), size(func, ρ, 6)),
+             similar(ρ, eltype(ρ), size(func, ρ, 4)),
+             similar(ρ, eltype(ρ), size(func, ρ, 9)),
+             similar(ρ, eltype(ρ), size(func, ρ, 12)),
+             similar(ρ, eltype(ρ), size(func, ρ, 10)))
+    elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
+        gga!(func, ρ, σ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), size(func, ρ, 6)),
+             similar(ρ, eltype(ρ), size(func, ρ, 6)))
+    elseif Constants.exc ∈ f && Constants.vxc ∈ f
+        gga!(func, ρ, σ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)))
+    elseif Constants.exc ∈ f && Constants.vxc ∈ f
+        gga!(func, ρ, σ,
+             similar(ρ, eltype(ρ), size(func, ρ, 1)),
+             similar(ρ), similar(ρ, eltype(ρ), size(func, ρ, 3)))
+    elseif Constants.exc ∈ f
+        gga!(func, ρ, σ, similar(ρ, eltype(ρ), size(func, ρ, 1)))
+    else
+        throw(ArgumentError("Not sure what this functional can do"))
+    end
 end
