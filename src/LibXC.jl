@@ -163,30 +163,6 @@ function Base.size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray, factor::Integ
     Base.size(s, size(ρ), factor)
 end
 
-for (name, factor) ∈ [(:esize, 1), (:vsize, 2), (:fsize, 3), (:ksize, 4)]
-    @eval begin
-        function $name(polarized::Bool, dims::NTuple)
-            if length(dims) == 0
-                throw(ArgumentError("Empty size tuple"))
-            elseif !polarized
-                dims
-            elseif length(dims) == 1 && polarized
-                if dims[1] % 2 ≠ 0
-                    throw(ArgumentError("Odd array size for polarized functional"))
-                end
-                warn("Spin polarized function, but dimensionality of ρ is 1")
-                $(factor == 1 ? :(dims[1]/2,): :(($factor * dims[1]/2,)))
-            elseif dims[1] == 2
-                $(factor == 1 ? :(dims[2:end]): :(($factor, dims[2:end]...)))
-            else
-                throw(ArgumentError("Spin polarization expects size(ρ, 1) == 2"))
-            end
-        end
-        $name(func::AbstractLibXCFunctional, ρ::DenseArray) = $name(spin(func), size(ρ))
-        $name(s::Constants.SPIN, dims::NTuple) = $name(s == Constants.polarized, dims)
-        $name(s::Union{Bool, Constants.SPIN}, ρ::DenseArray) = $name(s, size(ρ))
-    end
-end
 
 include("lda.jl")
 include("gga.jl")
