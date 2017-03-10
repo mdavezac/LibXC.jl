@@ -153,10 +153,10 @@ function output_size(polarized::Bool, dims::NTuple, factor::Integer)
         throw(ArgumentError("Spin polarization expects size(ρ, 1) == 2"))
     end
 end
-function Base.size(func::AbstractLibXCFunctional, ρ::DenseArray, factor::Integer)
-    size(spin(func), size(ρ), factor)
+function output_size(func::AbstractLibXCFunctional, ρ::DenseArray, factor::Integer)
+    output_size(spin(func), size(ρ), factor)
 end
-function Base.size(s::Constants.SPIN, dims::NTuple, factor::Integer)
+function output_size(s::Constants.SPIN, dims::NTuple, factor::Integer)
     output_size(s == Constants.polarized, dims, factor)
 end
 

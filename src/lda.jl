@@ -16,7 +16,7 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
             if $has_it ∉ flags(func)
                 error("Functional does not implement the $(replace(name, "_", " ")).")
             end
-            if size(output) ≠ size(func, ρ, $factor)
+            if size(output) ≠ output_size(func, ρ, $factor)
                 throw(ArgumentError("sizes of ρ and input are incompatible"))
             end
 
@@ -27,7 +27,7 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
         end
 
         function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
-            $name!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, $factor)))
+            $name!(func, ρ, similar(ρ, eltype(ρ), output_size(func, ρ, $factor)))
         end
     end
 end
@@ -76,16 +76,16 @@ function lda!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
     elseif length(outputs) ∉ (2, 3)
         throw(ArgumentError("Incorrect number of outputs, expected between 1 and 4"))
     end
-    if size(εxc) ≠ size(func, ρ, 1)
+    if size(εxc) ≠ output_size(func, ρ, 1)
         throw(ArgumentError("sizes of ρ and εxc are incompatible"))
     end
-    if size(outputs[1]) ≠ size(func, ρ, 2)
+    if size(outputs[1]) ≠ output_size(func, ρ, 2)
         throw(ArgumentError("sizes of ρ and potential are incompatible"))
     end
-    if size(outputs[2]) ≠ size(func, ρ, 3)
+    if size(outputs[2]) ≠ output_size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and second derivative are incompatible"))
     end
-    if size(outputs[3]) ≠ size(func, ρ, 4)
+    if size(outputs[3]) ≠ output_size(func, ρ, 4)
         throw(ArgumentError("sizes of ρ and third derivative are incompatible"))
     end
 
@@ -113,10 +113,10 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
         msg = "Incorrect number of arguments: input is not an LDA functional"
         throw(ArgumentError(msg))
     end
-    if size(εxc) ≠ size(func, ρ, 1)
+    if size(εxc) ≠ output_size(func, ρ, 1)
         throw(ArgumentError("sizes of ρ and εxc are incompatible"))
     end
-    if size(potential) ≠ size(func, ρ, 2)
+    if size(potential) ≠ output_size(func, ρ, 2)
         throw(ArgumentError("sizes of ρ and potential are incompatible"))
     end
 
@@ -147,7 +147,8 @@ for name ∈ [:energy_and_potential, :lda, :gga]
 end
 function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
                               ρ::DenseArray{Cdouble})
-    energy_and_potential!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, 1)), similar(ρ))
+    energy_and_potential!(func, ρ,
+                          similar(ρ, eltype(ρ), output_size(func, ρ, 1)), similar(ρ))
 end
 function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
     if family(func) ≠ Constants.lda
@@ -157,21 +158,21 @@ function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
         lda!(func, ρ,
-             similar(ρ, eltype(ρ), size(func, ρ, 1)),
-             similar(ρ, eltype(ρ), size(func, ρ, 2)),
-             similar(ρ, eltype(ρ), size(func, ρ, 3)),
-             similar(ρ, eltype(ρ), size(func, ρ, 4)))
+             similar(ρ, eltype(ρ), output_size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 2)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 3)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 4)))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
         lda!(func, ρ,
-             similar(ρ, eltype(ρ), size(func, ρ, 1)),
-             similar(ρ, eltype(ρ), size(func, ρ, 2)),
-             similar(ρ, eltype(ρ), size(func, ρ, 3)))
+             similar(ρ, eltype(ρ), output_size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 2)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 3)))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
         lda!(func, ρ,
-             similar(ρ, eltype(ρ), size(func, ρ, 1)),
-             similar(ρ, eltype(ρ), size(func, ρ, 2)))
+             similar(ρ, eltype(ρ), output_size(func, ρ, 1)),
+             similar(ρ, eltype(ρ), output_size(func, ρ, 2)))
     elseif Constants.exc ∈ f
-        lda!(func, ρ, similar(ρ, eltype(ρ), size(func, ρ, 1)))
+        lda!(func, ρ, similar(ρ, eltype(ρ), output_size(func, ρ, 1)))
     else
         throw(ArgumentError("Not sure what this functional can do"))
     end

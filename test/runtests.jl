@@ -41,14 +41,14 @@ functionals =  [
     @test LibXC.libkey(func) == stuff[:libkey]
     @test LibXC.spin(func) == stuff[:spin]
 
-    @test size(LibXC.Constants.polarized, (2, 5), 1) == (5,)
-    @test size(LibXC.Constants.unpolarized, (2, 5), 1) == (2, 5)
-    @test size(LibXC.Constants.polarized, (6,), 1) == (3,)
-    @test size(LibXC.Constants.unpolarized, (6,), 1) == (6,)
-    @test_throws ArgumentError size(LibXC.Constants.polarized, (5,), 1)
-    @test_throws ArgumentError size(LibXC.Constants.polarized, (), 1)
-    @test_throws ArgumentError size(LibXC.Constants.unpolarized, (), 1)
-    @test_throws ArgumentError size(LibXC.Constants.polarized, (3, 2), 1)
+    @test LibXC.output_size(LibXC.Constants.polarized, (2, 5), 1) == (5,)
+    @test LibXC.output_size(LibXC.Constants.unpolarized, (2, 5), 1) == (2, 5)
+    @test LibXC.output_size(LibXC.Constants.polarized, (6,), 1) == (3,)
+    @test LibXC.output_size(LibXC.Constants.unpolarized, (6,), 1) == (6,)
+    @test_throws ArgumentError LibXC.output_size(LibXC.Constants.polarized, (5,), 1)
+    @test_throws ArgumentError LibXC.output_size(LibXC.Constants.polarized, (), 1)
+    @test_throws ArgumentError LibXC.output_size(LibXC.Constants.unpolarized, (), 1)
+    @test_throws ArgumentError LibXC.output_size(LibXC.Constants.polarized, (3, 2), 1)
 end
 
 function input_data(name::String)
