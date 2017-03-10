@@ -132,7 +132,7 @@ kind(name::Symbol) = kind(XCFunctional(name))
 family(name::Symbol) = family(XCFunctional(name))
 flags(name::Symbol) = flags(XCFunctional(name))
 
-function Base.size(polarized::Bool, dims::NTuple, factor::Integer)
+function output_size(polarized::Bool, dims::NTuple, factor::Integer)
     if length(dims) == 0
         throw(ArgumentError("Empty size tuple"))
     elseif !polarized
@@ -154,13 +154,10 @@ function Base.size(polarized::Bool, dims::NTuple, factor::Integer)
     end
 end
 function Base.size(func::AbstractLibXCFunctional, ρ::DenseArray, factor::Integer)
-    Base.size(spin(func), size(ρ), factor)
+    size(spin(func), size(ρ), factor)
 end
 function Base.size(s::Constants.SPIN, dims::NTuple, factor::Integer)
-    Base.size(s == Constants.polarized, dims, factor)
-end
-function Base.size(s::Union{Bool, Constants.SPIN}, ρ::DenseArray, factor::Integer)
-    Base.size(s, size(ρ), factor)
+    output_size(s == Constants.polarized, dims, factor)
 end
 
 
