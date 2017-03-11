@@ -1,4 +1,14 @@
-""" GGA energy as a function of ρ and σ=|∇ρ| """
+"""
+    $(SIGNATURES)
+
+GGA energy as a function of ρ and σ=|∇ρ|. The dimensionality is as follows:
+
+    |GGA       | unpolarized | polarized                |
+    |----------+-------------+--------------------------|
+    |ρ         | any         | `(2, ...)`               |
+    |σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+    |εxc       | `size(ρ)`   | `size(ρ)[2:end]`         |
+"""
 function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                  σ::DenseArray{Cdouble}, output::DenseArray{Cdouble})
     if family(func) ≠ Constants.gga
@@ -28,7 +38,18 @@ end
 """ Potential from GGA """
 typealias GGAPotential @NT(rho, sigma)
 
-""" First derivatives of GGA energy w.r.t. ρ and σ=|∇ρ| """
+"""
+    $(SIGNATURES)
+
+GGA potential computed in place. The dimensionality of the different arrays are as follows:
+
+    |GGA       | unpolarized | polarized                |
+    |----------+-------------+--------------------------|
+    |ρ         | any         | `(2, ...)`               |
+    |σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+    |∂εxc/∂ρ   | `size(ρ)`   | `size(ρ)`                |
+    |∂εxc/∂σ   | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+"""
 function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                     σ::DenseArray{Cdouble}, pot_rho::DenseArray{Cdouble},
                     pot_sigma::DenseArray{Cdouble})
@@ -64,12 +85,24 @@ Include the second derivative of the energy with respect to ρ, σ, and both ρ 
 """
 typealias GGASecondDerivative @NT(rho2, rho_sigma, sigma2)
 
-""" Second derivatives of GGA energy w.r.t. ρ and σ=|∇ρ| """
+"""
+    $(SIGNATURES)
+
+Second derivatives of GGA energy w.r.t. ρ and σ=|∇ρ|. The dimensionality of the arrays is as
+follows:
+
+    |GGA        | unpolarized | polarized                |
+    |-----------+-------------+--------------------------|
+    |ρ          | any         | `(2, ...)`               |
+    |σ          | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+    |∂²εxc/∂ρ²  | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+    |∂²εxc/∂ρ∂σ | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
+    |∂²εxc/∂σ²  | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
+"""
 function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
                                    ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
-                                   deriv_rho::DenseArray{Cdouble},
-                                   deriv_rho_sigma::DenseArray{Cdouble},
-                                   deriv_sigma::DenseArray{Cdouble})
+                                   ∂ρ²::DenseArray{Cdouble}, ∂ρ∂σ::DenseArray{Cdouble},
+                                   ∂σ²::DenseArray{Cdouble})
     if family(func) ≠ Constants.gga
         msg = "Incorrect number of arguments: input is not an GGA functional"
         throw(ArgumentError(msg))
@@ -80,22 +113,22 @@ function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
     if size(σ) ≠ output_size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
     end
-    if size(deriv_rho) ≠ output_size(func, ρ, 3)
-        throw(ArgumentError("sizes of ρ and output deriv_rho are incompatible"))
+    if size(∂ρ²) ≠ output_size(func, ρ, 3)
+        throw(ArgumentError("sizes of ρ and output ∂²εxc/∂ρ² are incompatible"))
     end
-    if size(deriv_rho_sigma) ≠ output_size(func, ρ, 6)
-        throw(ArgumentError("sizes of ρ and output deriv_rho_sigma are incompatible"))
+    if size(∂ρ∂σ) ≠ output_size(func, ρ, 6)
+        throw(ArgumentError("sizes of ρ and output ∂²εxc/∂ρ∂σ are incompatible"))
     end
-    if size(deriv_sigma) ≠ output_size(func, ρ, 6)
-        throw(ArgumentError("sizes of ρ and output deriv_sigma are incompatible"))
+    if size(∂σ² ) ≠ output_size(func, ρ, 6)
+        throw(ArgumentError("sizes of ρ and output ∂²εxc/∂σ² are incompatible"))
     end
 
     ccall((:xc_gga_fxc, libxc), Void,
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
            Ptr{Cdouble}),
-          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, deriv_rho,
-          deriv_rho_sigma, deriv_sigma)
-    GGASecondDerivative(deriv_rho, deriv_rho_sigma, deriv_sigma)
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, ∂ρ²,
+          ∂ρ∂σ, ∂σ² )
+    GGASecondDerivative(∂ρ², ∂ρ∂σ, ∂σ²)
 end
 function second_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray,
                                   σ::DenseArray)
@@ -111,13 +144,27 @@ Include the third derivative of the energy with respect to ρ, σ, and both ρ a
 """
 typealias GGAThirdDerivative @NT(rho3, rho2_sigma, rho_sigma2, sigma3)
 
-""" Third derivatives of GGA energy w.r.t. ρ and σ=|∇ρ| """
+"""
+    $(SIGNATURES)
+
+Third derivatives of GGA energy w.r.t. ρ and σ=|∇ρ|. The dimensionality of the arrays is as
+follows:
+
+    |GGA         | unpolarized | polarized                 |
+    |------------+-------------+---------------------------|
+    |ρ           | any         | `(2, ...)`                |
+    |σ           | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+    |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+    |∂³εxc/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
+    |∂³εxc/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
+    |∂³εxc/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
+"""
 function third_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
                                    ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
-                                   deriv_rho3::DenseArray{Cdouble},
-                                   deriv_rho2_sigma::DenseArray{Cdouble},
-                                   deriv_rho_sigma2::DenseArray{Cdouble},
-                                   deriv_sigma3::DenseArray{Cdouble})
+                                   ∂ρ³::DenseArray{Cdouble},
+                                   ∂ρ²∂σ::DenseArray{Cdouble},
+                                   ∂ρ∂σ²::DenseArray{Cdouble},
+                                   ∂σ³::DenseArray{Cdouble})
     if family(func) ≠ Constants.gga
         msg = "Incorrect number of arguments: input is not an GGA functional"
         throw(ArgumentError(msg))
@@ -128,25 +175,25 @@ function third_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
     if size(σ) ≠ output_size(func, ρ, 3)
         throw(ArgumentError("sizes of ρ and σ are incompatible"))
     end
-    if size(deriv_rho3) ≠ output_size(func, ρ, 4)
-        throw(ArgumentError("sizes of ρ and output deriv_rho3 are incompatible"))
+    if size(∂ρ³) ≠ output_size(func, ρ, 4)
+        throw(ArgumentError("sizes of ρ and output ∂³εxc/∂ρ³ are incompatible"))
     end
-    if size(deriv_rho2_sigma) ≠ output_size(func, ρ, 9)
-        throw(ArgumentError("sizes of ρ and output deriv_rho2_sigma are incompatible"))
+    if size(∂ρ²∂σ) ≠ output_size(func, ρ, 9)
+        throw(ArgumentError("sizes of ρ and output ∂³εxc/∂ρ²∂σ are incompatible"))
     end
-    if size(deriv_rho2_sigma) ≠ output_size(func, ρ, 12)
-        throw(ArgumentError("sizes of ρ and output deriv_rho_sigma2 are incompatible"))
+    if size(∂ρ²∂σ) ≠ output_size(func, ρ, 12)
+        throw(ArgumentError("sizes of ρ and output ∂³εxc/∂ρ∂σ² are incompatible"))
     end
     if size(deriv_sigma) ≠ output_size(func, ρ, 10)
-        throw(ArgumentError("sizes of ρ and output deriv_sigma3 are incompatible"))
+        throw(ArgumentError("sizes of ρ and output ∂³εxc/∂σ³ are incompatible"))
     end
 
     ccall((:xc_gga_fxc, libxc), Void,
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
            Ptr{Cdouble}, Ptr{Cdouble}),
-          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, deriv_rho3,
-          deriv_rho2_sigma, deriv_rho_sigma2, deriv_sigma3)
-    GGAThirdDerivative(deriv_rho3, deriv_rho2_sigma, deriv_rho_sigma2, deriv_sigma3)
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, ∂ρ³,
+          ∂ρ²∂σ, ∂ρ∂σ², ∂σ³)
+    GGAThirdDerivative(∂ρ³, ∂ρ²∂σ, ∂ρ∂σ², ∂σ³)
 end
 function third_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray,
                                   σ::DenseArray)
@@ -160,7 +207,7 @@ end
 """ Holds GGA energy and first derivatives """
 typealias GGAEnergyPotential @NT(energy, pot_rho, pot_sigma)
 
-""" GGA energy and first derivatives """
+""" GGA energy and potential """
 function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                                σ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble},
                                pot_rho::DenseArray{Cdouble}, pot_sigma::DenseArray{Cdouble})
@@ -203,7 +250,14 @@ typealias AllGGA @NT(energy, first_rho, first_sigma, second_rho2, second_rho_sig
                      second_sigma2, third_rho3, third_rho2_sigma, third_rho_sigma3,
                      third_sigma3)
 
-""" GGA energy, first, second, and third derivatives """
+"""
+    $(SIGNATURES)
+
+GGA energy, first, second, and third derivatives, in place. Arrays for the first, second,
+and third derivatives are optional. They should be given only if available for that
+particular functional. When requesting higher derivatives, arrays to store the lower
+derivatives should also be given.
+"""
 function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
                                         ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
                                         εxc::DenseArray{Cdouble}, outputs::Vararg{T})
@@ -280,6 +334,7 @@ function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
     end
 end
 
+""" Computes the energy and all available derivatives for the given functional """
 function gga(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
              σ::DenseArray{Cdouble})
     if family(func) ≠ Constants.gga

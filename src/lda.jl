@@ -6,7 +6,17 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
     local has_it = Dict(:energy => Constants.exc, :potential => Constants.vxc,
                         :second_energy_derivative => Constants.fxc,
                         :third_energy_derivative => Constants.kxc)[name]
+    global docname = replace("$name", "_", " ")
+    global docdesc = factor == 1 ? "size(ρ)[2:end]":
+                     factor == 2 ? "size(ρ)": "($factor, size(ρ)[2:end]...)"
     @eval begin
+        @doc """
+            $(SIGNATURES)
+
+        Computes the $docname in-place for a given LDA functional. For spin-unpolarized
+        functionals, the output array has the dimensions of `ρ`. For spin-polarized
+        functionals, assuming `ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `$docdesc`.
+        """ ->
         function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                         output::DenseArray{Cdouble})
             if family(func) ≠ Constants.lda
@@ -25,7 +35,6 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
                   func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, output)
             output
         end
-
         function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
             $name!(func, ρ, similar(ρ, eltype(ρ), output_size(func, ρ, $factor)))
         end
@@ -36,25 +45,59 @@ end
 for name ∈ [:energy, :potential,:second_energy_derivative, :third_energy_derivative]
     local name! = Symbol("$(name)!")
     @eval begin
+        @doc """
+            $(SIGNATURES)
+
+        A simple way to call a functional using it's name. Spin polarization is determined
+        from the dimensionality of ρ: `ndims(ρ) > 1 && size(ρ, 1) == 2`.
+        """ ->
         function $name!(name::Symbol, ρ::DenseArray{Cdouble}, args...)
             $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
         end
-        function $name!(name::Symbol, s::Union{Constants.SPIN, Bool},
+
+        @doc """
+            $(SIGNATURES)
+
+        A simple way to call a functional using it's name. Spin polarization is explicitly
+        requested.
+        """ ->
+        function $name!(name::Symbol, spin::Union{Constants.SPIN, Bool},
                         ρ::DenseArray{Cdouble}, args...)
-            $name!(XCFunctional(name, s), ρ, args...)
+            $name!(XCFunctional(name, spin), ρ, args...)
         end
+
+        @doc """
+            $(SIGNATURES)
+
+        A simple way to call a functional using it's name. Spin polarization is determined
+        from the dimensionality of ρ: `ndims(ρ) > 1 && size(ρ, 1) == 2`.
+        """ ->
         function $name(name::Symbol, ρ::DenseArray, args...)
             $name(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
         end
-        function $name(name::Symbol, s::Union{Bool, Constants.SPIN}, ρ::DenseArray, args...)
-            $name(XCFunctional(name, s), ρ, args...)
+
+        @doc """
+        $(SIGNATURES)
+
+        A simple way to call a functional using it's name. Spin polarization is explicitly
+        specified.
+        """ ->
+        function $name(name::Symbol, spin::Union{Bool, Constants.SPIN},
+                       ρ::DenseArray, args...)
+            $name(XCFunctional(name, spin), ρ, args...)
         end
     end
 end
 
 """ All outputs from LDA """
 typealias AllLDA @NT(energy, potential, second_derivative, third_derivative)
-""" LDA energy, first, second, and third derivatives """
+"""
+    $(SIGNATURES)
+
+LDA energy, first, second, and third derivatives.
+The first, second, and third derivatives are optional. It is an error to request a
+derivative of the functional that is not implemented in the underlying C library.
+"""
 function lda!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
                                         ρ::DenseArray{Cdouble}, εxc::DenseArray{Cdouble},
                                         outputs::Vararg{T})
@@ -150,6 +193,8 @@ function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
     energy_and_potential!(func, ρ,
                           similar(ρ, eltype(ρ), output_size(func, ρ, 1)), similar(ρ))
 end
+
+""" Computes the energy and all available derivatives for the given functional """
 function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
     if family(func) ≠ Constants.lda
         throw(ArgumentError("Functional is not a GGA functional"))

@@ -3,6 +3,7 @@ export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
 export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga, gga!
 
+using DocStringExtensions
 using NamedTuples: @NT
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -52,11 +53,21 @@ end
 abstract AbstractXCFunctional
 abstract AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional
 
+""" Manages pointer to C libxc funtional data """
 type XCFunctional{T <: CReal} <: AbstractLibXCFunctional{T}
     c_ptr::Ptr{CFuncType{T}}
     XCFunctional(ptr::Ptr{CFuncType{T}}) = new(ptr)
 end
 
+""" Creates a functional from it's name and polarization
+
+The name should be a one of the following symbols:
+
+- LDA: $(join((u for u in keys(FUNCTIONALS) if string(u)[1:3] == "lda"), ", "))
+- GGA: $(join((u for u in keys(FUNCTIONALS) if string(u)[1:3] == "gga"), ", "))
+
+The second argument is `true` if the functional should be polarized.
+"""
 function XCFunctional(name::Symbol, spin_polarized::Bool=true)
     name ∉ keys(FUNCTIONALS) && error("Functional $name does not exist")
     ptr = ccall((:xc_func_alloc, libxc), Ptr{CFuncType{Cdouble}}, ())
@@ -132,6 +143,13 @@ kind(name::Symbol) = kind(XCFunctional(name))
 family(name::Symbol) = family(XCFunctional(name))
 flags(name::Symbol) = flags(XCFunctional(name))
 
+"""
+    $(SIGNATURES)
+
+Helps determine size of an output. `dims` refers to the size of input density array, and
+`factor` is the size we expect for the first dimension. It will vary with the functional
+(LDA, GGA, ...) and the kind of output (energy, potential, ...).
+"""
 function output_size(polarized::Bool, dims::NTuple, factor::Integer)
     if length(dims) == 0
         throw(ArgumentError("Empty size tuple"))
