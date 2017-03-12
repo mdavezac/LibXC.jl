@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/mdavezac/LibXC.jl.svg?branch=master)](https://travis-ci.org/mdavezac/LibXC.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://mdavezac.github.io/LibXC.jl/latest)
-[![Coverage Status](https://coveralls.io/repos/mdavezac/LibXC.jl/badge.svg)](https://coveralls.io/r/mdavezac/LibXC.jl)
+[![Coverage Status](https://coveralls.io/repos/github/mdavezac/LibXC.jl/badge.svg?branch=master)](https://coveralls.io/github/mdavezac/LibXC.jl?branch=master)
 
 Wrappers around the library of exchange-correlation functional
 [libxc](octopus-code.org/wiki/Libxc)
