@@ -112,7 +112,7 @@ julia> ρ = Cdouble[1, 2, 3];
 julia> εxc, pot = similar(ρ), similar(ρ);
 
 julia> result = energy_and_potential!(func, ρ, εxc, pot)
-(energy => [-0.738559,-0.930526,-1.06519], potential => [-0.984745,-1.2407,-1.42025])
+(energy = [-0.738559,-0.930526,-1.06519], potential = [-0.984745,-1.2407,-1.42025])
 
 julia> result.energy === εxc
 true
