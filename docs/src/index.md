@@ -85,10 +85,10 @@ The majority of the functionality is contained in four functions, [`energy`](@rf
 pre-allocating a functional. However, those options do come with some small overhead with
 each call.
 
-```jldocset
+```jldoctest
 julia> func = XCFunctional(:lda_x, false);
 
-julia> func(Cdouble[1, 2, 3])
+julia> energy(func, Cdouble[1, 2, 3])
 3-element Array{Float64,1}:
  -0.738559
  -0.930526
@@ -106,12 +106,12 @@ DocTestSetup = quote
 end
 ```
 
-```jldocset
+```jldoctest
 julia> ρ = Cdouble[1, 2, 3];
 
 julia> εxc, pot = similar(ρ), similar(ρ);
 
-julia> result = energy_and_potential(func, ρ, εxc, pot)
+julia> result = energy_and_potential!(func, ρ, εxc, pot)
 (energy => [-0.738559,-0.930526,-1.06519], potential => [-0.984745,-1.2407,-1.42025])
 
 julia> result.energy === εxc
