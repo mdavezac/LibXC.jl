@@ -11,8 +11,7 @@ script:
  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
  - julia -e 'Pkg.clone(pwd()); Pkg.build("LibXC"); Pkg.test("LibXC"; coverage=true)'
 after_success:
-  - julia -e 'Pkg.add("Documenter")'
-  - julia -e 'cd(Pkg.dir("LibXC")); include(joinpath("docs", "make.jl"))'
+  - julia -e 'cd(Pkg.dir("LibXC")); Pkg.add("Documenter"); include(joinpath("docs", "make.jl"))'
   - julia -e 'cd(Pkg.dir("LibXC")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
   # push coverage results to Coveralls
   # - julia -e 'cd(Pkg.dir("LibXC")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
