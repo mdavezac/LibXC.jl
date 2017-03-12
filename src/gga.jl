@@ -3,11 +3,11 @@
 
 GGA energy as a function of ρ and σ=|∇ρ|. The dimensionality is as follows:
 
-    |GGA       | unpolarized | polarized                |
-    |----------+-------------+--------------------------|
-    |ρ         | any         | `(2, ...)`               |
-    |σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
-    |εxc       | `size(ρ)`   | `size(ρ)[2:end]`         |
+|GGA       | unpolarized | polarized                |
+|----------|-------------|--------------------------|
+|ρ         | any         | `(2, ...)`               |
+|σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+|εxc       | `size(ρ)`   | `size(ρ)[2:end]`         |
 """
 function energy!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                  σ::DenseArray{Cdouble}, output::DenseArray{Cdouble})
@@ -43,12 +43,12 @@ typealias GGAPotential @NT(rho, sigma)
 
 GGA potential computed in place. The dimensionality of the different arrays are as follows:
 
-    |GGA       | unpolarized | polarized                |
-    |----------+-------------+--------------------------|
-    |ρ         | any         | `(2, ...)`               |
-    |σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
-    |∂εxc/∂ρ   | `size(ρ)`   | `size(ρ)`                |
-    |∂εxc/∂σ   | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+|GGA       | unpolarized | polarized                |
+|----------|-------------|--------------------------|
+|ρ         | any         | `(2, ...)`               |
+|σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+|∂εxc/∂ρ   | `size(ρ)`   | `size(ρ)`                |
+|∂εxc/∂σ   | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
 """
 function potential!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
                     σ::DenseArray{Cdouble}, pot_rho::DenseArray{Cdouble},
@@ -91,13 +91,13 @@ typealias GGASecondDerivative @NT(rho2, rho_sigma, sigma2)
 Second derivatives of GGA energy w.r.t. ρ and σ=|∇ρ|. The dimensionality of the arrays is as
 follows:
 
-    |GGA        | unpolarized | polarized                |
-    |-----------+-------------+--------------------------|
-    |ρ          | any         | `(2, ...)`               |
-    |σ          | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
-    |∂²εxc/∂ρ²  | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
-    |∂²εxc/∂ρ∂σ | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
-    |∂²εxc/∂σ²  | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
+|GGA        | unpolarized | polarized                |
+|-----------|-------------|--------------------------|
+|ρ          | any         | `(2, ...)`               |
+|σ          | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+|∂²εxc/∂ρ²  | `size(ρ)`   | `(3, size(ρ)[2:end]...)` |
+|∂²εxc/∂ρ∂σ | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
+|∂²εxc/∂σ²  | `size(ρ)`   | `(6, size(ρ)[2:end]...)` |
 """
 function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
                                    ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},
@@ -150,14 +150,14 @@ typealias GGAThirdDerivative @NT(rho3, rho2_sigma, rho_sigma2, sigma3)
 Third derivatives of GGA energy w.r.t. ρ and σ=|∇ρ|. The dimensionality of the arrays is as
 follows:
 
-    |GGA         | unpolarized | polarized                 |
-    |------------+-------------+---------------------------|
-    |ρ           | any         | `(2, ...)`                |
-    |σ           | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-    |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
-    |∂³εxc/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
-    |∂³εxc/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
-    |∂³εxc/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
+|GGA         | unpolarized | polarized                 |
+|------------|-------------|---------------------------|
+|ρ           | any         | `(2, ...)`                |
+|σ           | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+|∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+|∂³εxc/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
+|∂³εxc/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
+|∂³εxc/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
 """
 function third_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
                                    ρ::DenseArray{Cdouble}, σ::DenseArray{Cdouble},

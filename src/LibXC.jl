@@ -2,6 +2,7 @@ module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
 export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga, gga!
+export libxc_functionals
 
 using DocStringExtensions
 using NamedTuples: @NT
@@ -49,6 +50,16 @@ const FUNCTIONALS = let
     end
     result
 end
+"""" Functional keys and names """
+const iFUNCTIONALS = Dict(v => k for (k, v) in FUNCTIONALS)
+
+""" Names of the available libxc functionals """
+function libxc_functionals()
+    collect(filter(keys(FUNCTIONALS)) do x
+        local name = string(x)
+        length(name) > 3 && (name[1:3] == "lda" || name[1:3] == "gga")
+    end)
+end
 
 abstract AbstractXCFunctional
 abstract AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional
@@ -57,6 +68,23 @@ abstract AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional
 type XCFunctional{T <: CReal} <: AbstractLibXCFunctional{T}
     c_ptr::Ptr{CFuncType{T}}
     XCFunctional(ptr::Ptr{CFuncType{T}}) = new(ptr)
+end
+
+function Base.showcompact(io::IO, func::AbstractLibXCFunctional)
+    symb = iFUNCTIONALS[libkey(func)]
+    print(io, "$(typeof(func))(:$symb, $(spin(func)))")
+end
+function Base.show(io::IO, func::AbstractLibXCFunctional)
+    showcompact(io, func)
+    println(io,
+        "\n  - description: $(description(func))",
+        "\n  - kind: $(kind(func))",
+        "\n  - family: $(family(func))",
+        "\n  - spin: $(spin(func))",
+        "\n  - citations:")
+    for cit in citations(func)
+        println(io, "      * $(cit.ref)")
+    end
 end
 
 """ Creates a functional from it's name and polarization
@@ -181,4 +209,39 @@ end
 
 include("lda.jl")
 include("gga.jl")
+
+
+""" Prints functional to markdown, mostly for docs """
+function to_markdown(name)
+    func = XCFunctional(name, false)
+    result = Base.Markdown.MD()
+    push!(result.content, Base.Markdown.Header{3}(description(func)))
+
+    list = Base.Markdown.List()
+    push!(list.items,
+		Any[Base.Markdown.Paragraph(["name: ", Base.Markdown.Code("", ":$name")])])
+    push!(list.items, Any[Base.Markdown.Paragraph(["kind: $(kind(func))"])])
+
+    availability = String[]
+    Constants.exc ∈ flags(func) && push!(availability, "εxc")
+    Constants.vxc ∈ flags(func) && push!(availability, "∂εxc")
+    Constants.fxc ∈ flags(func) && push!(availability, "∂²εxc")
+    Constants.fxc ∈ flags(func) && push!(availability, "∂³εxc")
+    if length(availability) > 0
+        push!(list.items,
+              Any[Base.Markdown.Paragraph(
+                    ["available derivatives: ", join(availability, ", ")])])
+    end
+
+    references = Base.Markdown.List()
+    for citation in citations(func)
+        link = Base.Markdown.Link(citation.ref, "https://dx.doi.org/$(citation.doi)")
+        push!(references.items, Any[Base.Markdown.Paragraph([link])])
+    end
+    push!(list.items, Any[Base.Markdown.Paragraph(["references:"]), references])
+    push!(result.content, list)
+    result
+end
+
+
 end # module
