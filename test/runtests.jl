@@ -1,7 +1,6 @@
 module LibXCTests
 using LibXC
 using Base.Test
-using CSV: read
 using DataFrames: DataFrame
 
 @testset "> Internal API" begin
