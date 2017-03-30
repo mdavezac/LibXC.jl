@@ -33,10 +33,14 @@ for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
             ccall(($(parse(":$funcname")), libxc), Void,
                   (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
                   func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, output)
-            output
+            reinterpret(EnergyDensity{Cdouble}, output)
+        end
+        function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
+                        output::EnergyDensityArray{Cdouble})
+            $name!(func, ρ, reinterpret(Cdouble, output))
         end
         function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
-            $name!(func, ρ, similar(ρ, eltype(ρ), output_size(func, ρ, $factor)))
+            $name!(func, ρ, similar(ρ, EnergyDensity{eltype(ρ)}, output_size(func, ρ, $factor)))
         end
     end
 end
@@ -141,10 +145,19 @@ function lda!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
           ρ, εxc, args[1], args[2], args[3])
 
     if length(outputs) == 2
-        AllLDA(εxc, outputs..., [], [])
+        AllLDA(reinterpret(EnergyDensity{Cdouble}, εxc),
+               map(x -> reinterpret(EnergyDensity{Cdouble}, x), outputs)..., [], [])
     else
-        AllLDA(εxc, outputs...)
+        AllLDA(reinterpret(EnergyDensity{Cdouble}, εxc),
+               map(x -> reinterpret(EnergyDensity{Cdouble}, x), outputs)...)
     end
+end
+
+function lda!{T <: EnergyDensityArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
+                                         ρ::DenseArray{Cdouble}, 
+                                         εxc::EnergyDensityArray{Cdouble},
+                                         outputs::Vararg{T})
+    lda!(func, ρ, reinterpret(Cdouble, εxc), map(x -> reinterpret(Cdouble, x), outputs)...)
 end
 
 """ Energy and potential from LDA """
@@ -166,7 +179,15 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
     ccall((:xc_lda_exc_vxc, libxc), Void,
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, εxc, potential)
-    LDAEnergyPotential(εxc, potential)
+    LDAEnergyPotential(reinterpret(EnergyDensity{Cdouble}, εxc),
+                       reinterpret(EnergyDensity{Cdouble}, potential))
+end
+
+function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
+                               εxc::EnergyDensityArray{Cdouble},
+                               potential::EnergyDensityArray{Cdouble})
+    energy_and_potential!(func, ρ, reinterpret(Cdouble, ϵxc),
+                          reinterpret(Cdouble, potential))
 end
 
 for name ∈ [:energy_and_potential, :lda, :gga]

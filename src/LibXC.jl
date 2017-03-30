@@ -13,6 +13,7 @@ else
     error("LiBXC not properly installed. Please run Pkg.build(\"LibXC\")")
 end
 
+include("units.jl")
 include("structures.jl")
 include("constants.jl")
 
