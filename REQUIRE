@@ -3,3 +3,4 @@ BinDeps
 NamedTuples
 Documenter
 DocStringExtensions
+Unitful

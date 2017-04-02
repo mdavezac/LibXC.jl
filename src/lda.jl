@@ -1,61 +1,176 @@
-for (funcname, name, factor) ∈ [(:xc_lda_exc, :energy, 1),
-                                (:xc_lda_vxc, :potential, 2),
-                                (:xc_lda_fxc, :second_energy_derivative, 3),
-                                (:xc_lda_kxc, :third_energy_derivative, 4)]
-    local name! = Symbol("$(name)!")
-    local has_it = Dict(:energy => Constants.exc, :potential => Constants.vxc,
-                        :second_energy_derivative => Constants.fxc,
-                        :third_energy_derivative => Constants.kxc)[name]
-    global docname = replace("$name", "_", " ")
-    global docdesc = factor == 1 ? "size(ρ)[2:end]":
-                     factor == 2 ? "size(ρ)": "($factor, size(ρ)[2:end]...)"
-    @eval begin
-        @doc """
-            $(SIGNATURES)
+""" Adds check for functional type """
+macro check_functional funcname functype
+    msg = "Incorrect number of arguments: input is not an $functype functional"
+    quote
+        family($funcname) ≠ Constants.$functype && throw(ArgumentError($msg))
+    end
+end
 
-        Computes the $docname in-place for a given LDA functional. For spin-unpolarized
-        functionals, the output array has the dimensions of `ρ`. For spin-polarized
-        functionals, assuming `ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `$docdesc`.
-        """ ->
-        function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-                        output::DenseArray{Cdouble})
-            if family(func) ≠ Constants.lda
-                msg = "Incorrect number of arguments: input is not an LDA functional"
-                throw(ArgumentError(msg))
-            end
-            if $has_it ∉ flags(func)
-                error("Functional does not implement the $(replace(name, "_", " ")).")
-            end
-            if size(output) ≠ output_size(func, ρ, $factor)
-                throw(ArgumentError("sizes of ρ and input are incompatible"))
-            end
-
-            ccall(($(parse(":$funcname")), libxc), Void,
-                  (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
-                  func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, output)
-            reinterpret(EnergyDensity{Cdouble}, output)
-        end
-        function $name!(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble},
-                        output::EnergyDensityArray{Cdouble})
-            $name!(func, ρ, reinterpret(Cdouble, output))
-        end
-        function $name(func::AbstractLibXCFunctional, ρ::DenseArray)
-            $name!(func, ρ, similar(ρ, EnergyDensity{eltype(ρ)}, output_size(func, ρ, $factor)))
+""" Adds argument check for energy derivative availability """
+macro check_availability funcname functype
+    msg = "Functional does not implement energy."
+    quote
+        Constants.$functype ∉ flags($funcname) && error($msg)
+    end
+end
+""" Adds argument check for size compatibility """
+macro check_size funcname rhoname outname factor
+    msg = "sizes of $rhoname and $outname are incompatible"
+    quote
+        if size($outname) ≠ output_size($funcname, $rhoname, $factor)
+            throw(ArgumentError($msg))
         end
     end
+end
+
+"""
+    $(SIGNATURES)
+
+Computes the energy in-place for a given LDA functional. For spin-unpolarized functionals,
+the output array has the dimensions of `ρ`. For spin-polarized functionals, assuming
+`ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `size(ρ)[2:end]`.
+"""
+function energy!(func::AbstractLibXCFunctional{Cdouble},
+                 ρ::DenseArray{Units.ρ{Cdouble}},
+                 ϵ::DenseArray{Units.ϵ{Cdouble}})
+    energy!(func, reinterpret(Cdouble, ρ), reinterpret(Cdouble, ϵ))
+    ϵ
+end
+function energy!(func::AbstractLibXCFunctional{Cdouble},
+                 ρ::DenseArray{Cdouble},
+                 ϵ::DenseArray{Cdouble})
+    @check_functional func lda
+    @check_availability func exc
+    @check_size func ρ ϵ 1
+
+    ccall((:xc_lda_exc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)),
+          ρ, ϵ)
+    ϵ
+end
+
+
+"""
+    $(SIGNATURES)
+
+Computes the potential in-place for a given LDA functional. For spin-unpolarized
+functionals, the output array has the dimensions of `ρ`. For spin-polarized functionals,
+assuming `ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `size(ρ)`.
+"""
+function potential!(func::AbstractLibXCFunctional{Cdouble},
+                    ρ::DenseArray{Units.ρ{Cdouble}},
+                    ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}})
+    potential!(func, reinterpret(Cdouble, ρ), reinterpret(Cdouble, ∂ϵ_∂ρ))
+    ∂ϵ_∂ρ
+end
+function potential!(func::AbstractLibXCFunctional{Cdouble},
+                    ρ::DenseArray{Cdouble},
+                    ∂ϵ_∂ρ::DenseArray{Cdouble})
+    @check_functional func lda
+    @check_availability func vxc
+    @check_size func ρ ∂ϵ_∂ρ 2
+
+    ccall((:xc_lda_vxc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)),
+          ρ, ∂ϵ_∂ρ)
+    ∂ϵ_∂ρ
+end
+
+"""
+    $(SIGNATURES)
+
+Computes the second energy derivative in-place for a given LDA functional. For
+spin-unpolarized functionals, the output array has the dimensions of `ρ`. For spin-polarized
+functionals, assuming `ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `(3, size(ρ)[2:end]...)`.
+"""
+function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
+                                   ρ::DenseArray{Units.ρ{Cdouble}},
+                                   ∂²ϵ_∂ρ²::DenseArray{Units.∂²ϵ_∂ρ²{Cdouble}})
+    second_energy_derivative!(func, reinterpret(Cdouble, ρ), reinterpret(Cdouble, ∂²ϵ_∂²ρ))
+    ∂²ϵ_∂²ρ
+end
+function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
+                                   ρ::DenseArray{Cdouble},
+                                   ∂²ϵ_∂ρ²::DenseArray{Cdouble})
+    @check_functional func lda
+    @check_availability func fxc
+    @check_size func ρ ∂²ϵ_∂ρ² 3
+
+    ccall((:xc_lda_fxc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)),
+          ρ, ∂²ϵ_∂ρ²)
+
+    ∂²ϵ_∂ρ²
+end
+
+"""
+    $(SIGNATURES)
+
+Computes the third energy derivative in-place for a given LDA functional. For
+spin-unpolarized functionals, the output array has the dimensions of `ρ`. For spin-polarized
+functionals, assuming `ndims(ρ) > 1 && size(ρ, 1) == 2`, it is `(4, size(ρ)[2:end]...)`.
+"""
+function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
+                                   ρ::DenseArray{Units.ρ{Cdouble}},
+                                   ∂³ϵ_∂ρ³::DenseArray{Units.∂⁴ϵ_∂ρ⁴{Cdouble}})
+    second_energy_derivative!(func, reinterpret(Cdouble, ρ), reinterpret(Cdouble, ∂³ϵ_∂³ρ))
+    ∂³ϵ_∂³ρ
+end
+function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
+                                   ρ::DenseArray{Cdouble},
+                                   ∂³ϵ_∂ρ³::DenseArray{Cdouble})
+    @check_functional func lda
+    @check_availability func kxc
+    @check_size func ρ ∂⁴ϵ_∂ρ⁴ 4
+
+    ccall((:xc_lda_kxc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)),
+          ρ, ∂³ϵ_∂ρ³)
+
+    ∂³ϵ_∂ρ³
+end
+
+""" Stateless function for computing LDA energies """
+function energy(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}})
+    energy!(func, ρ, similar(ρ, Units.ϵ{Cdouble}, output_size(func, ρ, 1)))
+end
+""" Stateless function for computing LDA first derivatives """
+function potential(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}})
+    potential!(func, ρ, similar(ρ, Units.∂ϵ_∂ρ{Cdouble}, output_size(func, ρ, 2)))
+end
+""" Stateless function for computing LDA second derivatives """
+function second_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                                  ρ::DenseArray{Units.ρ{Cdouble}})
+    second_energy_derivative!(func, ρ,
+                              similar(ρ, Units.∂²ϵ_∂²ρ{Cdouble}, output_size(func, ρ, 3)))
+end
+""" Stateless function for computing LDA third derivatives """
+function third_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                                 ρ::DenseArray{Units.ρ{Cdouble}})
+    third_energy_derivative!(func, ρ,
+                             similar(ρ, Units.∂³ϵ_∂³ρ{Cdouble}, output_size(func, ρ, 4)))
 end
 
 # Adds simplifying overloads
 for name ∈ [:energy, :potential,:second_energy_derivative, :third_energy_derivative]
     local name! = Symbol("$(name)!")
     @eval begin
+        function $name{T <: Number}(func::AbstractLibXCFunctional{Cdouble},
+                                    ρ::DenseArray{T})
+            $name!(func, Units.conversion(Units.ρ, ρ))
+        end
+
         @doc """
             $(SIGNATURES)
 
         A simple way to call a functional using it's name. Spin polarization is determined
         from the dimensionality of ρ: `ndims(ρ) > 1 && size(ρ, 1) == 2`.
         """ ->
-        function $name!(name::Symbol, ρ::DenseArray{Cdouble}, args...)
+        function $name!(name::Symbol, ρ::DenseArray, args...)
             $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
         end
 
@@ -66,7 +181,7 @@ for name ∈ [:energy, :potential,:second_energy_derivative, :third_energy_deriv
         requested.
         """ ->
         function $name!(name::Symbol, spin::Union{Constants.SPIN, Bool},
-                        ρ::DenseArray{Cdouble}, args...)
+                        ρ::DenseArray, args...)
             $name!(XCFunctional(name, spin), ρ, args...)
         end
 
@@ -145,19 +260,12 @@ function lda!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
           ρ, εxc, args[1], args[2], args[3])
 
     if length(outputs) == 2
-        AllLDA(reinterpret(EnergyDensity{Cdouble}, εxc),
-               map(x -> reinterpret(EnergyDensity{Cdouble}, x), outputs)..., [], [])
+        AllLDA(reinterpret(Units.ϵ{Cdouble}, εxc),
+               map(i -> reinterpret(EnergyDensity{Cdouble}, outputs[i]), outputs)..., [], [])
     else
         AllLDA(reinterpret(EnergyDensity{Cdouble}, εxc),
                map(x -> reinterpret(EnergyDensity{Cdouble}, x), outputs)...)
     end
-end
-
-function lda!{T <: EnergyDensityArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
-                                         ρ::DenseArray{Cdouble}, 
-                                         εxc::EnergyDensityArray{Cdouble},
-                                         outputs::Vararg{T})
-    lda!(func, ρ, reinterpret(Cdouble, εxc), map(x -> reinterpret(Cdouble, x), outputs)...)
 end
 
 """ Energy and potential from LDA """

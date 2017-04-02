@@ -13,7 +13,12 @@ else
     error("LiBXC not properly installed. Please run Pkg.build(\"LibXC\")")
 end
 
+""" Floating points LibXC might now about """
+typealias CReal Union{Cfloat, Cdouble}
+
+include("dispatch_units.jl")
 include("units.jl")
+
 include("structures.jl")
 include("constants.jl")
 
@@ -208,8 +213,8 @@ function output_size(s::Constants.SPIN, dims::NTuple, factor::Integer)
 end
 
 
-include("lda.jl")
-include("gga.jl")
+# include("lda.jl")
+# include("gga.jl")
 
 
 """ Prints functional to markdown, mostly for docs """
