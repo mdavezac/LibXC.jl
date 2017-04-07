@@ -67,23 +67,45 @@ function expected_data(name::String)
                 for v in readlines(data_file)[3:end])
     expected = transpose(hcat(expected...))
     if size(expected, 2) == 3
-        DataFrame(Any[reinterpret(LibXC.EnergyDensity{Cdouble}, expected[:, i])
-                      for i in 1:size(expected, 2)], [:ε, :v, :δv])
+        DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
+                      reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 3])],
+                  [:ε, :v, :δv])
     elseif size(expected, 2) == 6
-        DataFrame(Any[reinterpret(LibXC.EnergyDensity{Cdouble}, expected[:, i])
-                      for i in 1:size(expected, 2)],
+        DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
+                      reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
+                      reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 4]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 5]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 6])],
                   [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
     elseif size(expected, 2) > 6
-        cols = [:ε, :vrho_a, :vrho_b, :vsigma_aa, :vsigma_ab, :vsigma_bb, :v2rho_aa,
-                :v2rho_ab, :v2rho_bb, :v2sigma2_aa_aa, :v2sigma2_aa_ab, :v2sigma2_aa_bb,
-                :v2sigma2i_ab_ab, :v2sigma2_ab_bb, :v2sigma2_bb_bb, :v2rho_asigma_aa,
-                :v2rho_asigma_ab, :v2rho_asigma_bb, :v2rho_bsigma_aa, :v2rho_bsigma_ab,
-                :v2rho_bsigma_bb]
-        result = DataFrame(Any[expected[:, i] for i in 1:size(expected, 2)], cols)
-        cols = [:ε, :vrho_a, :vrho_b, :v2rho_aa, :v2rho_ab, :v2rho_bb]
-        for u in cols
-            result[u] = reinterpret(EnergyDensity{Cdouble}, result[u])
-        end
+        DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
+                      reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
+                      reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
+                      reinterpret(LibXC.Units.∂ϵ_∂σ{Cdouble}, expected[:, 4]),
+                      reinterpret(LibXC.Units.∂ϵ_∂σ{Cdouble}, expected[:, 5]),
+                      reinterpret(LibXC.Units.∂ϵ_∂σ{Cdouble}, expected[:, 6]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 7]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 8]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 9]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 10]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 11]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 12]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 13]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 14]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:, 15]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 16]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 17]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 18]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 19]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 20]),
+                      reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:, 21])],
+                   [:ε, :vrho_a, :vrho_b, :vsigma_aa, :vsigma_ab, :vsigma_bb, :v2rho_aa,
+                    :v2rho_ab, :v2rho_bb, :v2sigma2_aa_aa, :v2sigma2_aa_ab, :v2sigma2_aa_bb,
+                    :v2sigma2_ab_ab, :v2sigma2_ab_bb, :v2sigma2_bb_bb, :v2rho_asigma_aa,
+                    :v2rho_asigma_ab, :v2rho_asigma_bb, :v2rho_bsigma_aa, :v2rho_bsigma_ab,
+                    :v2rho_bsigma_bb])
     end
 end
 
@@ -105,80 +127,83 @@ end
 @testset "> LDA" begin
     input = input_data("BrOH")
 
-    # @testset ">> Unpolarizated " begin
-    #     expected = expected_data("lda_x.BrOH.unpol.dat")
-    #     ρ = input[:ρ_a] + input[:ρ_b]
-    #     @test energy(:lda_x, ρ) ≈ expected[:ε]
-    #     @test eltype(energy(:lda_x, ρ)) <: LibXC.EnergyDensity
-    #     @test potential(:lda_x, ρ) ≈ expected[:v]
-    #     @test eltype(potential(:lda_x, ρ)) <: LibXC.EnergyDensity
-    #     @test second_energy_derivative(:lda_x, ρ) ≈ expected[:δv]
-    #     @test eltype(second_energy_derivative(:lda_x, ρ)) <: LibXC.EnergyDensity
-    #
-    #     func = XCFunctional(:lda_x, false)
-    #     εxc, pot = energy_and_potential(func, ρ)
-    #     @test εxc ≈ expected[:ε]
-    #     @test pot ≈ expected[:v]
-    #
-    #     εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρ)
-    #     @test εxc ≈ expected[:ε]
-    #     @test pot ≈ expected[:v]
-    #     @test second_deriv ≈ expected[:δv]
-    # end
-    #
-    # @testset ">> Polarized" begin
-    #     expected = expected_data("lda_x.BrOH.pol.dat")
-    #
-    #     ρs = vcat(input[:ρ_a]', input[:ρ_b]')
-    #     @test energy(:lda_x, ρs) ≈ expected[:ε]
-    #     @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
-    #     δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
-    #     @test second_energy_derivative(:lda_x, ρs) ≈ δv
-    #
-    #     func = XCFunctional(:lda_x, true)
-    #     εxc, pot = energy_and_potential(func, ρs)
-    #     @test εxc ≈ expected[:ε]
-    #     @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
-    #
-    #     εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρs)
-    #     @test εxc ≈ expected[:ε]
-    #     @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
-    #     @test second_deriv ≈ δv
-    # end
+    @testset ">> Unpolarizated " begin
+        expected = expected_data("lda_x.BrOH.unpol.dat")
+        ρ = reinterpret(LibXC.Units.ρ{Cdouble}, input[:ρ_a] + input[:ρ_b])
+        @test energy(:lda_x, ρ) ≈ expected[:ε]
+        @test eltype(energy(:lda_x, ρ)) <: LibXC.Units.ϵ
+        @test potential(:lda_x, ρ) ≈ expected[:v]
+        @test eltype(potential(:lda_x, ρ)) <: LibXC.Units.∂ϵ_∂ρ
+        @test second_energy_derivative(:lda_x, ρ) ≈ expected[:δv]
+        @test eltype(second_energy_derivative(:lda_x, ρ)) <: LibXC.Units.∂²ϵ_∂ρ²
+
+        func = XCFunctional(:lda_x, false)
+        εxc, pot = energy_and_potential(func, ρ)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ expected[:v]
+
+        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρ)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ expected[:v]
+        @test second_deriv ≈ expected[:δv]
+    end
+
+    @testset ">> Polarized" begin
+        expected = expected_data("lda_x.BrOH.pol.dat")
+
+        ρs = reinterpret(LibXC.Units.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
+        @test energy(:lda_x, ρs) ≈ expected[:ε]
+        @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
+        δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
+        @test second_energy_derivative(:lda_x, ρs) ≈ δv
+
+        func = XCFunctional(:lda_x, true)
+        εxc, pot = energy_and_potential(func, ρs)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
+
+        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρs)
+        @test εxc ≈ expected[:ε]
+        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
+        @test second_deriv ≈ δv
+    end
 end
 
 @testset "> GGA" begin
     input = input_data("BrOH")
-#
-#     @testset ">> Unpolarizated " begin
-#         expected = expected_data("gga_c_pbe.BrOH.unpol.dat")
-#         ρ = input[:ρ_a] + input[:ρ_b]
-#         σ = input[:σ_aa] + 2input[:σ_ab] + input[:σ_bb]
-#         @test_throws ArgumentError energy(:gga_c_pbe, ρ)
-#         @test energy(:gga_c_pbe, ρ, σ) ≈ expected[:ε]
-#
-#         pot = potential(:gga_c_pbe, ρ, σ)
-#         @test pot.rho ≈ expected[:v_a]
-#         @test pot.sigma ≈ expected[:v_b]
-#
-#         second = second_energy_derivative(:gga_c_pbe, ρ, σ)
-#         @test second.rho2 ≈ expected[:δv_aa]
-#         @test second.rho_sigma ≈ expected[:δv_bb]
-#         @test second.sigma2 ≈ expected[:δv_ab]
-#
-#         εxc, pot_rho, pot_sigma = energy_and_potential(:gga_c_pbe, ρ, σ)
-#         @test εxc ≈ expected[:ε]
-#         @test pot_rho ≈ expected[:v_a]
-#         @test pot_sigma ≈ expected[:v_b]
-#
-#         all_out = gga(:gga_c_pbe, ρ, σ)
-#         @test all_out.energy ≈ expected[:ε]
-#         @test all_out.first_rho ≈ expected[:v_a]
-#         @test all_out.first_sigma ≈ expected[:v_b]
-#         @test all_out.second_rho2 ≈ expected[:δv_aa]
-#         @test all_out.second_rho_sigma ≈ expected[:δv_bb]
-#         @test all_out.second_sigma2 ≈ expected[:δv_ab]
-#     end
+
+    @testset ">> Unpolarizated " begin
+        expected = expected_data("gga_c_pbe.BrOH.unpol.dat")
+        expected[:v_b] = reinterpret(LibXC.Units.∂ϵ_∂σ{Cdouble}, expected[:v_b])
+        expected[:δv_ab] = reinterpret(LibXC.Units.∂²ϵ_∂σ²{Cdouble}, expected[:δv_ab])
+        expected[:δv_bb] = reinterpret(LibXC.Units.∂²ϵ_∂ρ∂σ{Cdouble}, expected[:δv_bb])
+        ρ = reinterpret(LibXC.Units.ρ{Cdouble}, input[:ρ_a] + input[:ρ_b])
+        σ = reinterpret(LibXC.Units.σ{Cdouble}, input[:σ_aa] + 2input[:σ_ab] + input[:σ_bb])
+        @test_throws ArgumentError energy(:gga_c_pbe, ρ)
+        @test energy(:gga_c_pbe, ρ, σ) ≈ expected[:ε]
+
+        pot = potential(:gga_c_pbe, ρ, σ)
+        @test pot.∂ϵ_∂ρ ≈ expected[:v_a]
+        @test pot.∂ϵ_∂σ ≈ expected[:v_b]
+
+        second = second_energy_derivative(:gga_c_pbe, ρ, σ)
+        @test second.∂²ϵ_∂ρ² ≈ expected[:δv_aa]
+        @test second.∂²ϵ_∂ρ∂σ ≈ expected[:δv_bb]
+        @test second.∂²ϵ_∂σ² ≈ expected[:δv_ab]
+
+        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_potential(:gga_c_pbe, ρ, σ)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ expected[:v_a]
+        @test ∂ϵ_∂σ ≈ expected[:v_b]
+
+        all_out = gga(:gga_c_pbe, ρ, σ)
+        @test all_out.ϵ ≈ expected[:ε]
+        @test all_out.∂ϵ_∂ρ ≈ expected[:v_a]
+        @test all_out.∂ϵ_∂σ ≈ expected[:v_b]
+        @test all_out.∂²ϵ_∂ρ² ≈ expected[:δv_aa]
+        @test all_out.∂²ϵ_∂ρ∂σ ≈ expected[:δv_bb]
+        @test all_out.∂²ϵ_∂σ² ≈ expected[:δv_ab]
+    end
 #
 #     @testset ">> Polarized" begin
 #         expected = expected_data("gga_c_pbe.BrOH.pol.dat")

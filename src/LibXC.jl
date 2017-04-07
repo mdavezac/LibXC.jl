@@ -6,6 +6,7 @@ export libxc_functionals
 
 using DocStringExtensions
 using NamedTuples: @NT
+using Unitful: Quantity
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
@@ -213,8 +214,10 @@ function output_size(s::Constants.SPIN, dims::NTuple, factor::Integer)
 end
 
 
-# include("lda.jl")
-# include("gga.jl")
+include("checks.jl")
+include("lda.jl")
+include("gga.jl")
+include("overloads.jl")
 
 
 """ Prints functional to markdown, mostly for docs """
