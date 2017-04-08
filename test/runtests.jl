@@ -138,14 +138,14 @@ end
         @test eltype(second_energy_derivative(:lda_x, ρ)) <: LibXC.Units.∂²ϵ_∂ρ²
 
         func = XCFunctional(:lda_x, false)
-        εxc, pot = energy_and_potential(func, ρ)
-        @test εxc ≈ expected[:ε]
-        @test pot ≈ expected[:v]
+        ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρ)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ expected[:v]
 
-        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρ)
-        @test εxc ≈ expected[:ε]
-        @test pot ≈ expected[:v]
-        @test second_deriv ≈ expected[:δv]
+        ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρ)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ expected[:v]
+        @test ∂²ϵ_∂ρ² ≈ expected[:δv]
     end
 
     @testset ">> Polarized" begin
@@ -158,14 +158,14 @@ end
         @test second_energy_derivative(:lda_x, ρs) ≈ δv
 
         func = XCFunctional(:lda_x, true)
-        εxc, pot = energy_and_potential(func, ρs)
-        @test εxc ≈ expected[:ε]
-        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
+        ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρs)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
 
-        εxc, pot, second_deriv, third_deriv = lda(:lda_x, ρs)
-        @test εxc ≈ expected[:ε]
-        @test pot ≈ vcat(expected[:v_a]', expected[:v_b]')
-        @test second_deriv ≈ δv
+        ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρs)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
+        @test ∂²ϵ_∂ρ² ≈ δv
     end
 end
 
@@ -204,52 +204,53 @@ end
         @test all_out.∂²ϵ_∂ρ∂σ ≈ expected[:δv_bb]
         @test all_out.∂²ϵ_∂σ² ≈ expected[:δv_ab]
     end
-#
-#     @testset ">> Polarized" begin
-#         expected = expected_data("gga_c_pbe.BrOH.pol.dat")
-#
-#         ρs = vcat(input[:ρ_a]', input[:ρ_b]')
-#         σs = vcat(input[:σ_aa]', input[:σ_ab]', input[:σ_bb]')
-#         @test energy(:gga_c_pbe, ρs, σs) ≈ expected[:ε]
-#
-#         pot = potential(:gga_c_pbe, ρs, σs)
-#         @test pot.rho ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
-#         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
-#         @test pot.sigma ≈ expect
-#
-#         second = second_energy_derivative(:gga_c_pbe, ρs, σs)
-#         v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
-#         v2sigma = vcat(expected[:v2sigma2_aa_aa]', expected[:v2sigma2_aa_ab]',
-#                        expected[:v2sigma2_aa_bb]', expected[:v2sigma2i_ab_ab]',
-#                        expected[:v2sigma2_ab_bb]', expected[:v2sigma2_bb_bb]')
-#         v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
-#         v2rho_sigma = vcat(expected[:v2rho_asigma_aa]', expected[:v2rho_asigma_ab]',
-#                            expected[:v2rho_asigma_bb]', expected[:v2rho_bsigma_aa]',
-#                            expected[:v2rho_bsigma_ab]', expected[:v2rho_bsigma_bb]')
-#         @test second.rho2 ≈ v2rho
-#         @test second.sigma2 ≈ v2sigma
-#         @test second.rho_sigma ≈ v2rho_sigma
-#
-#         εxc, pot_rho, pot_sigma = energy_and_potential(:gga_c_pbe, ρs, σs)
-#         @test εxc ≈ expected[:ε]
-#         @test pot_rho ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
-#         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
-#         @test pot_sigma ≈ expect
-#
-#         all_out = gga(:gga_c_pbe, ρs, σs)
-#         @test all_out.energy ≈ expected[:ε]
-#         @test all_out.first_rho ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
-#         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
-#         @test all_out.first_sigma ≈ expect
-#         v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
-#         v2sigma = vcat(expected[:v2sigma2_aa_aa]', expected[:v2sigma2_aa_ab]',
-#                        expected[:v2sigma2_aa_bb]', expected[:v2sigma2i_ab_ab]',
-#                        expected[:v2sigma2_ab_bb]', expected[:v2sigma2_bb_bb]')
-#         v2rho = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
-#         @test all_out.second_rho2 ≈ v2rho
-#         @test all_out.second_rho_sigma ≈ v2rho_sigma
-#         @test all_out.second_sigma2 ≈ v2sigma
-#     end
+
+    @testset ">> Polarized" begin
+        expected = expected_data("gga_c_pbe.BrOH.pol.dat")
+
+        ρs = reinterpret(LibXC.Units.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
+        σs = reinterpret(LibXC.Units.σ{Cdouble},
+                         vcat(input[:σ_aa]', input[:σ_ab]', input[:σ_bb]'))
+        @test energy(:gga_c_pbe, ρs, σs) ≈ expected[:ε]
+
+        pot = potential(:gga_c_pbe, ρs, σs)
+        @test pot.∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
+        expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
+        @test pot.∂ϵ_∂σ ≈ expect
+
+        second = second_energy_derivative(:gga_c_pbe, ρs, σs)
+        ∂²ϵ_∂ρ² = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        ∂²ϵ_∂σ² = vcat(expected[:v2sigma2_aa_aa]', expected[:v2sigma2_aa_ab]',
+                       expected[:v2sigma2_aa_bb]', expected[:v2sigma2_ab_ab]',
+                       expected[:v2sigma2_ab_bb]', expected[:v2sigma2_bb_bb]')
+        ∂²ϵ_∂ρ² = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        ∂²ϵ_∂ρ∂σ = vcat(expected[:v2rho_asigma_aa]', expected[:v2rho_asigma_ab]',
+                           expected[:v2rho_asigma_bb]', expected[:v2rho_bsigma_aa]',
+                           expected[:v2rho_bsigma_ab]', expected[:v2rho_bsigma_bb]')
+        @test second.∂²ϵ_∂ρ²  ≈ ∂²ϵ_∂ρ²
+        @test second.∂²ϵ_∂σ²  ≈ ∂²ϵ_∂σ²
+        @test second.∂²ϵ_∂ρ∂σ ≈ ∂²ϵ_∂ρ∂σ
+
+        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_potential(:gga_c_pbe, ρs, σs)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
+        expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
+        @test ∂ϵ_∂σ ≈ expect
+
+        all_out = gga(:gga_c_pbe, ρs, σs)
+        @test all_out.ϵ ≈ expected[:ε]
+        @test all_out.∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
+        ∂ϵ_∂σ = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
+        @test all_out.∂ϵ_∂σ ≈ ∂ϵ_∂σ
+        ∂²ϵ_∂ρ² = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        ∂²ϵ_∂σ² = vcat(expected[:v2sigma2_aa_aa]', expected[:v2sigma2_aa_ab]',
+                       expected[:v2sigma2_aa_bb]', expected[:v2sigma2_ab_ab]',
+                       expected[:v2sigma2_ab_bb]', expected[:v2sigma2_bb_bb]')
+        ∂²ϵ_∂ρ² = vcat(expected[:v2rho_aa]', expected[:v2rho_ab]', expected[:v2rho_bb]')
+        @test all_out.∂²ϵ_∂ρ² ≈ ∂²ϵ_∂ρ²
+        @test all_out.∂²ϵ_∂ρ∂σ ≈ ∂²ϵ_∂ρ∂σ
+        @test all_out.∂²ϵ_∂σ² ≈ ∂²ϵ_∂σ²
+    end
 end
 
 end
