@@ -2,6 +2,7 @@ module LibXCTests
 using LibXC
 using Base.Test
 using Unitful
+using UnitfulHartree
 using DataFrames: DataFrame
 
 @testset "> Internal API" begin
@@ -212,6 +213,7 @@ end
         σs = reinterpret(LibXC.Units.σ{Cdouble},
                          vcat(input[:σ_aa]', input[:σ_ab]', input[:σ_bb]'))
         @test energy(:gga_c_pbe, ρs, σs) ≈ expected[:ε]
+        @test energy(:gga_c_pbe, LibXC.Units.conversion(u"𝐞*m^-3", ρs), σs) ≈ expected[:ε]
 
         pot = potential(:gga_c_pbe, ρs, σs)
         @test pot.∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
