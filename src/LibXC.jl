@@ -17,7 +17,6 @@ end
 """ Floating points LibXC might now about """
 typealias CReal Union{Cfloat, Cdouble}
 
-include("dispatch_units.jl")
 include("units.jl")
 
 include("structures.jl")
