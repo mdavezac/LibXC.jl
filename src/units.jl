@@ -1,8 +1,12 @@
-""" LibXC compatible units """
+""" LibXC compatible units
+
+Helps with dispatching over different units to hartree units.
+"""
 module Units
 using DocStringExtensions
 using Unitful
 using UnitfulHartree
+using LibXC.DFTUnits: 𝐞
 
 """
     $(SIGNATURES)
@@ -43,17 +47,17 @@ macro _dim_helper(name, quant)
         end)
 end
 
-@_dim_helper ρ         1u"𝐞*a₀^-3"
-@_dim_helper σ         1u"𝐞*a₀^-4"
-@_dim_helper ϵ         1u"Eₕ/𝐞"
-@_dim_helper ∂ϵ_∂ρ     1u"Eₕ*𝐞^-2*a₀^3"
-@_dim_helper ∂ϵ_∂σ     1u"Eₕ*𝐞^-2*a₀^4"
-@_dim_helper ∂²ϵ_∂ρ²   1u"Eₕ*𝐞^-3*a₀^6"
-@_dim_helper ∂²ϵ_∂σ²   1u"Eₕ*𝐞^-3*a₀^8"
-@_dim_helper ∂²ϵ_∂ρ∂σ  1u"Eₕ*𝐞^-3*a₀^7"
-@_dim_helper ∂³ϵ_∂ρ³   1u"Eₕ*𝐞^-4*a₀^9"
-@_dim_helper ∂³ϵ_∂σ³   1u"Eₕ*𝐞^-4*a₀^12"
-@_dim_helper ∂³ϵ_∂ρ²∂σ 1u"Eₕ*𝐞^-4*a₀^10"
-@_dim_helper ∂³ϵ_∂ρ∂σ² 1u"Eₕ*𝐞^-4*a₀^11"
+@_dim_helper ρ         𝐞*1u"a₀^-3"
+@_dim_helper σ         𝐞*1u"a₀^-4"
+@_dim_helper ϵ         1u"Eₕ"/𝐞
+@_dim_helper ∂ϵ_∂ρ     𝐞^-2*1u"Eₕ*a₀^3"
+@_dim_helper ∂ϵ_∂σ     𝐞^-2*1u"Eₕ*a₀^4"
+@_dim_helper ∂²ϵ_∂ρ²   𝐞^-3*1u"Eₕ*a₀^6"
+@_dim_helper ∂²ϵ_∂σ²   𝐞^-3*1u"Eₕ*a₀^8"
+@_dim_helper ∂²ϵ_∂ρ∂σ  𝐞^-3*1u"Eₕ*a₀^7"
+@_dim_helper ∂³ϵ_∂ρ³   𝐞^-4*1u"Eₕ*a₀^9"
+@_dim_helper ∂³ϵ_∂σ³   𝐞^-4*1u"Eₕ*a₀^12"
+@_dim_helper ∂³ϵ_∂ρ²∂σ 𝐞^-4*1u"Eₕ*a₀^10"
+@_dim_helper ∂³ϵ_∂ρ∂σ² 𝐞^-4*1u"Eₕ*a₀^11"
 
 end
