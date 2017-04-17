@@ -42,7 +42,7 @@ The functionals can be queried for their [`kind`](@ref), [`family`](@ref),
 ## A word about input dimensionality
 
 The functionals expect input arrays ρ and σ=|∇ρ|, and (optionally) a number of output
-arrays, for the energy `εxc`, and the different derivatives, e.g. ∂εxc/∂ρ. Because we are
+arrays, for the energy `ϵ`, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are
 accessing a C library, some care must be taken when creating these arrays.
 
 * All arrays must be dense (contiguous in memory) and the element type must match `Cdouble`
@@ -51,28 +51,28 @@ accessing a C library, some care must be taken when creating these arrays.
 * spin-polarized cases: the **first** dimension of ρ must be 2: `size(ρ) = (2, ....)`. Other
   arrays must match in very specific ways:
 
-  |LDA         | unpolarized | polarized                 |
-  |------------|-------------|---------------------------|
-  |ρ           | any         | `(2, ...)`                |
-  |εxc         | `size(ρ)`   | `size(ρ)[2:end]`          |
-  |∂εxc/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
-  |∂²εxc/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+  |LDA       | unpolarized | polarized                 |
+  |----------|-------------|---------------------------|
+  |ρ         | any         | `(2, ...)`                |
+  |ϵ         | `size(ρ)`   | `size(ρ)[2:end]`          |
+  |∂ϵ/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
+  |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
 
-  |GGA         | unpolarized | polarized                 |
-  |------------|-------------|---------------------------|
-  |ρ           | any         | `(2, ...)`                |
-  |σ           | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |εxc         | `size(ρ)`   | `size(ρ)[2:end]`          |
-  |∂εxc/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
-  |∂εxc/∂σ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂ρ∂σ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂σ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
-  |∂³εxc/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
+  |GGA       | unpolarized | polarized                 |
+  |----------|-------------|---------------------------|
+  |ρ         | any         | `(2, ...)`                |
+  |σ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |ϵ         | `size(ρ)`   | `size(ρ)[2:end]`          |
+  |∂ϵ/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
+  |∂ϵ/∂σ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ∂σ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂σ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
+  |∂³ϵ/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
 
 For the exact meaning of each dimension in each array, please refer to
 [libxc](http://octopus-code.org/wiki/Libxc)
@@ -88,7 +88,7 @@ each call.
 ```jldoctest
 julia> func = XCFunctional(:lda_x, false);
 
-julia> energy(func, Cdouble[1, 2, 3])
+julia> energy(func, [1, 2, 3]1u"rho")
 3-element Array{Float64,1}:
  -0.738559
  -0.930526
@@ -109,12 +109,12 @@ end
 ```jldoctest
 julia> ρ = Cdouble[1, 2, 3];
 
-julia> εxc, pot = similar(ρ), similar(ρ);
+julia> ϵ, ∂ϵ_∂ρ = similar(ρ), similar(ρ);
 
-julia> result = energy_and_potential!(func, ρ, εxc, pot)
+julia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)
 (energy = [-0.738559,-0.930526,-1.06519], potential = [-0.984745,-1.2407,-1.42025])
 
-julia> result.energy === εxc
+julia> result.energy === ϵ
 true
 ```
 

@@ -36,8 +36,6 @@ function energy(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
     energy!(func, ρ, σ, similar(ρ, eltype(ρ), output_size(func, ρ, 1)))
 end
 
-""" Potential from GGA """
-typealias GGAPotential @NT(∂ϵ_∂ρ, ∂ϵ_∂σ)
 
 """
     $(SIGNATURES)
@@ -85,12 +83,6 @@ function potential(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                    σ::DenseArray{Cdouble})
     potential!(func, ρ, σ, similar(ρ), similar(ρ, eltype(ρ), output_size(func, ρ, 3)))
 end
-
-""" Second derivative from GGA
-
-Include the second derivative of the energy with respect to ρ, σ, and both ρ and σ.
-"""
-typealias GGASecondDerivative @NT(∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ²)
 
 """
     $(SIGNATURES)
@@ -152,12 +144,6 @@ function second_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray{
                               similar(ρ, eltype(ρ), output_size(func, ρ, 6)),
                               similar(ρ, eltype(ρ), output_size(func, ρ, 6)))
 end
-
-""" Third derivative from GGA
-
-Include the third derivative of the energy with respect to ρ, σ, and both ρ and σ.
-"""
-typealias GGAThirdDerivative @NT(∂³ϵ_∂ρ³, ∂³ϵ_∂ρ²∂σ, ∂³ϵ_∂ρ∂σ², ∂³ϵ_∂σ³)
 
 """
     $(SIGNATURES)
@@ -226,9 +212,6 @@ function third_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray{C
                               similar(ρ, eltype(ρ), output_size(func, ρ, 10)))
 end
 
-""" Holds GGA energy and first derivatives """
-typealias GGAEnergyPotential @NT(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
-
 """ GGA energy and potential """
 function energy_and_potential!(func::AbstractLibXCFunctional{Cdouble},
                                ρ::DenseArray{Units.ρ{Cdouble}},
@@ -239,7 +222,7 @@ function energy_and_potential!(func::AbstractLibXCFunctional{Cdouble},
     energy_and_potential!(func, reinterpret(Cdouble, ρ), reinterpret(Cdouble, σ),
                           reinterpret(Cdouble, ϵ), reinterpret(Cdouble, ∂ϵ_∂ρ),
                           reinterpret(Cdouble, ∂ϵ_∂σ))
-    GGAEnergyPotential(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
+    GGAEnergyAndPotential(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
 end
 function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                                σ::DenseArray{Cdouble}, ϵ::DenseArray{Cdouble},
@@ -255,7 +238,7 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
            Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, σ, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
-    GGAEnergyPotential(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
+    GGAEnergyAndPotential(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
 end
 function energy_and_potential(func::AbstractLibXCFunctional, ρ::DenseArray{Units.ρ{Cdouble}},
                 σ::DenseArray{Units.σ{Cdouble}})
@@ -269,10 +252,6 @@ function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
                           similar(ρ), similar(ρ, eltype(ρ), output_size(func, ρ, 3)))
 end
 
-
-""" All outputs from LDA """
-typealias AllGGA @NT(ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ², ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ²∂σ,
-                     ∂³ϵ_∂ρ∂σ², ∂³ϵ_∂σ³)
 
 """
     $(SIGNATURES)

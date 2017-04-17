@@ -129,8 +129,7 @@ function third_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
                              similar(ρ, Units.∂³ϵ_∂ρ³{Cdouble}, output_size(func, ρ, 4)))
 end
 
-""" All outputs from LDA """
-typealias AllLDA @NT(ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³)
+
 """
     $(SIGNATURES)
 
@@ -204,8 +203,6 @@ function lda!(func::AbstractLibXCFunctional{Cdouble},
            Units.∂²ϵ_∂ρ²{Cdouble}[], Units.∂³ϵ_∂ρ³{Cdouble}[])
 end
 
-""" Energy and potential from LDA """
-typealias LDAEnergyPotential @NT(ϵ, ∂ϵ_∂ρ)
 """ LDA energy and first derivative """
 function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                                ϵ::DenseArray{Cdouble}, ∂ϵ_∂ρ::DenseArray{Cdouble})
@@ -219,7 +216,7 @@ function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdo
           (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, ϵ, ∂ϵ_∂ρ)
 
-    LDAEnergyPotential(ϵ, ∂ϵ_∂ρ)
+    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
 end
 
 function energy_and_potential!(func::AbstractLibXCFunctional,
@@ -228,7 +225,7 @@ function energy_and_potential!(func::AbstractLibXCFunctional,
                                ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}})
     energy_and_potential!(func, reinterpret(Cdouble, ρ),
                           reinterpret(Cdouble, ϵ), reinterpret(Cdouble, ∂ϵ_∂ρ))
-    LDAEnergyPotential(ϵ, ∂ϵ_∂ρ)
+    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
 end
 
 for name ∈ [:energy_and_potential, :lda, :gga]

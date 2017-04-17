@@ -1,3 +1,4 @@
+__precompile__()
 module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
@@ -215,6 +216,7 @@ end
 
 
 include("checks.jl")
+include("named_tuples.jl")
 include("lda.jl")
 include("gga.jl")
 include("overloads.jl")
