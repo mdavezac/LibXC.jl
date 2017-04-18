@@ -6,7 +6,6 @@ export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga
 export libxc_functionals
 
 using DocStringExtensions
-using NamedTuples: @NT
 using Unitful: Quantity, @u_str
 export @u_str
 
