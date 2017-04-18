@@ -12,7 +12,7 @@ export @u_str
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
 else
-    error("LiBXC not properly installed. Please run Pkg.build(\"LibXC\")")
+    error("LibXC not properly installed. Please run Pkg.build(\"LibXC\")")
 end
 
 """ Floating points LibXC might now about """
