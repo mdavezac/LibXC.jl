@@ -37,7 +37,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "A word about input dimensionality",
     "category": "section",
-    "text": "The functionals expect input arrays ρ and ∇ρ=|∇ρ|, and (optionally) a number of output arrays, for the energy ϵ, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are accessing a C library, some care must be taken when creating these arrays.All arrays must be dense (contiguous in memory) and the element type must match Cdouble (On most systems, Cdouble is an alias for Float64).\nnon-spin-polarized cases: ρ can have any dimensions. All other arrays must match ρ.\nspin-polarized cases: the first dimension of ρ must be 2: size(ρ) = (2, ....). Other arrays must match in very specific ways:\nLDA unpolarized polarized\nρ any (2, ...)\nϵ size(ρ) size(ρ)[2:end]\n∂ϵ/∂ρ size(ρ) size(ρ)\n∂²ϵ/∂ρ² size(ρ) (3, size(ρ)[2:end]...)\n∂³ϵ/∂ρ³ size(ρ) (4, size(ρ)[2:end]...)\nGGA unpolarized polarized\nρ any (2, ...)\n∇ρ size(ρ) (3, size(ρ)[2:end]...)\nϵ size(ρ) size(ρ)[2:end]\n∂ϵ/∂ρ size(ρ) size(ρ)\n∂ϵ/∂∇ρ size(ρ) (3, size(ρ)[2:end]...)\n∂²ϵ/∂ρ² size(ρ) (3, size(ρ)[2:end]...)\n∂²ϵ/∂ρ∂∇ρ size(ρ) (6, size(ρ)[2:end]...)\n∂²ϵ/∂∇ρ² size(ρ) (6, size(ρ)[2:end]...)\n∂³ϵ/∂ρ³ size(ρ) (4, size(ρ)[2:end]...)\n∂³ϵ/∂ρ²∂∇ρ size(ρ) (9, size(ρ)[2:end]...)\n∂³ϵ/∂ρ∂∇ρ² size(ρ) (10, size(ρ)[2:end]...)\n∂³ϵ/∂∇ρ³ size(ρ) (12, size(ρ)[2:end]...)For the exact meaning of each dimension in each array, please refer to libxc"
+    "text": "The functionals expect input arrays ρ and ∇ρ, and (optionally) a number of output arrays, for the energy ϵ, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are accessing a C library, some care must be taken when creating these arrays.All arrays must be dense (contiguous in memory) and the element type must match Cdouble (On most systems, Cdouble is an alias for Float64).\nnon-spin-polarized cases: ρ can have any dimensions. All other arrays must match ρ.\nspin-polarized cases: the first dimension of ρ must be 2: size(ρ) = (2, ....). Other arrays must match in very specific ways:\nLDA unpolarized polarized\nρ any (2, ...)\nϵ size(ρ) size(ρ)[2:end]\n∂ϵ/∂ρ size(ρ) size(ρ)\n∂²ϵ/∂ρ² size(ρ) (3, size(ρ)[2:end]...)\n∂³ϵ/∂ρ³ size(ρ) (4, size(ρ)[2:end]...)\nGGA unpolarized polarized\nρ any (2, ...)\n∇ρ size(ρ) (3, size(ρ)[2:end]...)\nϵ size(ρ) size(ρ)[2:end]\n∂ϵ/∂ρ size(ρ) size(ρ)\n∂ϵ/∂∇ρ size(ρ) (3, size(ρ)[2:end]...)\n∂²ϵ/∂ρ² size(ρ) (3, size(ρ)[2:end]...)\n∂²ϵ/∂ρ∂∇ρ size(ρ) (6, size(ρ)[2:end]...)\n∂²ϵ/∂∇ρ² size(ρ) (6, size(ρ)[2:end]...)\n∂³ϵ/∂ρ³ size(ρ) (4, size(ρ)[2:end]...)\n∂³ϵ/∂ρ²∂∇ρ size(ρ) (9, size(ρ)[2:end]...)\n∂³ϵ/∂ρ∂∇ρ² size(ρ) (10, size(ρ)[2:end]...)\n∂³ϵ/∂∇ρ³ size(ρ) (12, size(ρ)[2:end]...)For the exact meaning of each dimension in each array, please refer to libxc"
 },
 
 {
@@ -53,7 +53,15 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Using the functionals",
     "category": "section",
-    "text": "The majority of the functionality is contained in four functions, energy, potential, second_energy_derivative, third_energy_derivative. Note that user-friendly overloads exist that make pre-allocating a functional. However, those options do come with some small overhead with each call.julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type. More complicated functions will modify existing arrays, thus removing inefficiencies due to memory allocation:DocTestSetup = quote\n    using LibXC\n    using Unitful\n    func = XCFunctional(:lda_x, false)\nendjulia> ρ = Cdouble[1, 2, 3]u\"rho\";\n\njulia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});\n\njulia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});\n\njulia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)\n(ϵ = [-0.738559,-0.930526,-1.06519]u\"ϵ\", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u\"∂ϵ_∂ρ\")\n\njulia> result.ϵ === ϵ\ntrueFor convenience, some of the functions with more complex outputs return a named tuple. However, notice that the arrays in the tuple are aliases to the input arrays."
+    "text": "Once a functional is created, it can be called with a number of methods to compute the energy, the potential, as well as the second and third energy derivatives (when available for that functional).julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type.The following functions are available:energy\npotential\nenergy_and_potential\nsecond_energy_derivative\nthird_energy_derivative\nlda (all possible lda for the given functional outputs)\ngga (all possible gga outputs for the given functional)All these functions have overloads which hide the creation of a functional from the user:julia> energy(:lda_x, [1, 2, 3]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵ\n\njulia> energy(:lda_x, [1 2 3; 3 2 1]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -1.23917 ϵ\n -1.17239 ϵ\n -1.23917 ϵ\n\njulia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"ρ\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ\n  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵIn most cases, the overhead of creating and destroying a C functional object at each call is likely too small to matter.The spin-polarization can be specified in the second argument (true for spin-polarized, false for spin-polarized). If this argument is not given, then a best-guess attempt is made: the functional is spin-polarized when ρ is at least two-dimensional and the first dimension of ρ is two (size(ρ, 1) == 2), and the functional is unpolarized in all other cases.Finally, it is possible to give inputs in different units. However, this will incur the cost of converting the array to the Hartree atomic units, both in terms of memory (an extra array is allocated) and in terms of compute (the actual conversion). The return is always in atomic units:julia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"𝐞/nm^3\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ\n -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵThe 𝐞 can be accessed in the Julia REPL by typing \\mbfe followed by TAB (for tab completion)."
+},
+
+{
+    "location": "index.html#Using-pre-allocated-output-array-1",
+    "page": "Home",
+    "title": "Using pre-allocated output array",
+    "category": "section",
+    "text": "Similar functions exist that take pre-allocated output arrays. Following Julia conventions, these functions are named energy!, potential!, etc... Each function named above has an xxx! counterpart.DocTestSetup = quote\n    using LibXC\n    using Unitful\n    func = XCFunctional(:lda_x, false)\nendjulia> ρ = Cdouble[1, 2, 3]u\"rho\";\n\njulia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});\n\njulia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});\n\njulia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)\n(ϵ = [-0.738559,-0.930526,-1.06519]u\"ϵ\", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u\"∂ϵ_∂ρ\")\n\njulia> result.ϵ === ϵ\ntrueFor convenience, some of the functions with more complex outputs return a named tuple. However, notice that the arrays in the tuple are aliases to the input arrays."
 },
 
 {
@@ -125,23 +133,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.energy",
     "category": "Method",
-    "text": "Stateless function for computing LDA energies \n\n\n\n"
+    "text": "energy(func, ρ)\n\n\nComputes the LDA energy density associated with the input density.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.energy-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.energy-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.energy",
     "category": "Method",
-    "text": "energy(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
+    "text": "energy(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.energy-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.energy-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.energy",
     "category": "Method",
-    "text": "energy(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "energy(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
@@ -149,7 +157,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.energy_and_potential!",
     "category": "Method",
-    "text": "LDA energy and first derivative \n\n\n\n"
+    "text": "energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)\n\n\nLDA energy and first derivative\n\n\n\n"
 },
 
 {
@@ -157,7 +165,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.energy_and_potential!",
     "category": "Method",
-    "text": "GGA energy and potential \n\n\n\n"
+    "text": "energy_and_potential!(func, ρ, ∇ρ, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂∇ρ)\n\n\nGGA energy and potential\n\n\n\n"
 },
 
 {
@@ -177,19 +185,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy_and_potential-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.energy_and_potential-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.energy_and_potential",
     "category": "Method",
-    "text": "energy_and_potential(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
+    "text": "energy_and_potential(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.energy_and_potential-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.energy_and_potential-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.energy_and_potential",
     "category": "Method",
-    "text": "energy_and_potential(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "energy_and_potential(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
@@ -221,7 +229,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.gga",
     "category": "Method",
-    "text": "Computes the energy and all available derivatives for the given functional \n\n\n\n"
+    "text": "gga(func, ρ, ∇ρ)\n\n\nComputes the energy and all available derivatives for the given functional\n\n\n\n"
 },
 
 {
@@ -261,31 +269,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.lda",
     "category": "Method",
-    "text": "Computes the energy and all available derivatives for the given functional \n\n\n\n"
+    "text": "lda(func, ρ)\n\n\nComputes the energy and all available derivatives for the given functional\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.lda-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N}}",
+    "location": "index.html#LibXC.lda-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.lda",
     "category": "Method",
-    "text": "Computes the energy and all available derivatives for the given functional \n\n\n\n"
+    "text": "lda(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.lda-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.lda-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.lda",
     "category": "Method",
-    "text": "lda(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
-},
-
-{
-    "location": "index.html#LibXC.lda-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
-    "page": "Home",
-    "title": "LibXC.lda",
-    "category": "Method",
-    "text": "lda(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "lda(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
@@ -333,23 +333,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.potential",
     "category": "Method",
-    "text": "Stateless function for computing LDA first derivatives \n\n\n\n"
+    "text": "potential(func, ρ)\n\n\nComputes the LDA potential associated with the input density.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.potential-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.potential-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.potential",
     "category": "Method",
-    "text": "potential(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
+    "text": "potential(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.potential-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.potential-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.potential",
     "category": "Method",
-    "text": "potential(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "potential(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
@@ -357,23 +357,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.second_energy_derivative",
     "category": "Method",
-    "text": "Stateless function for computing LDA second derivatives \n\n\n\n"
+    "text": "second_energy_derivative(func, ρ)\n\n\nComputes the LDA second energy derivatives associated with the input density.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.second_energy_derivative-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative",
     "category": "Method",
-    "text": "second_energy_derivative(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
+    "text": "second_energy_derivative(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.second_energy_derivative-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative",
     "category": "Method",
-    "text": "second_energy_derivative(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "second_energy_derivative(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
@@ -389,23 +389,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "LibXC.third_energy_derivative",
     "category": "Method",
-    "text": "Stateless function for computing LDA third derivatives \n\n\n\n"
+    "text": "third_energy_derivative(func, ρ)\n\n\nComputes the LDA third energy derivatives associated with the input density.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative-Tuple{Symbol,DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.third_energy_derivative-Tuple{Symbol,DenseArray}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative",
     "category": "Method",
-    "text": "third_energy_derivative(name, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
+    "text": "third_energy_derivative(name, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is determined from the dimensionality of ρ: ndims(ρ) > 1 && size(ρ, 1) == 2.\n\n\n\n"
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray,Vararg{Any,N}}",
+    "location": "index.html#LibXC.third_energy_derivative-Tuple{Symbol,Union{Bool,LibXC.Constants.SPIN},DenseArray}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative",
     "category": "Method",
-    "text": "third_energy_derivative(name, spin, ρ, args)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
+    "text": "third_energy_derivative(name, spin, ρ)\n\n\nA simple way to call a functional using it's name. Spin polarization is explicitly specified.\n\n\n\n"
 },
 
 {
