@@ -16,7 +16,7 @@ Pkg.build("LibXC")
 
 ## References
 
-All credit to the original C implementation:
+All credit goes to the original C implementation:
 
 * Miguel A. L. Marques, Micael J. T. Oliveira, and Tobias Burnus,
   "Libxc: a library of exchange and correlation functionals for density functional theory"
