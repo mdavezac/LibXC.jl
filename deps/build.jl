@@ -12,5 +12,5 @@ provides(BuildProcess, autotools, libxc)
 @BinDeps.install Dict(:libxc => :libxc)
 
 if "UnitfulHartree" ∉ keys(Pkg.installed())
-    Pkg.clone("https://www.github.com/mdavezac/UnitfulHartree")
+    Pkg.clone("https://github.com/mdavezac/UnitfulHartree.jl.git")
 end
