@@ -228,29 +228,6 @@ function energy_and_potential!(func::AbstractLibXCFunctional,
     LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
 end
 
-for name ∈ [:energy_and_potential, :lda, :gga]
-    local name! = Symbol("$(name)!")
-    @eval begin
-        function $name!(name::Symbol,
-                        ρ::Union{DenseArray{Units.ρ{Cdouble}}, DenseArray{Cdouble}},
-                        args...)
-            $name!(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
-        end
-        function $name!(name::Symbol, s::Union{Bool, Constants.SPIN},
-                        ρ::Union{DenseArray{Units.ρ{Cdouble}}, DenseArray{Cdouble}},
-                        args...)
-            $name!(XCFunctional(name, s), ρ, args...)
-        end
-        function $name(name::Symbol,
-                       ρ::Union{DenseArray{Units.ρ{Cdouble}}, DenseArray{Cdouble}}, args...)
-            $name(name, ndims(ρ) > 1 && size(ρ, 1) == 2, ρ, args...)
-        end
-        function $name(name::Symbol, s::Union{Bool, Constants.SPIN},
-                       ρ::Union{DenseArray{Units.ρ{Cdouble}}, DenseArray{Cdouble}}, args...)
-            $name(XCFunctional(name, s), ρ, args...)
-        end
-    end
-end
 function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
                               ρ::DenseArray{Cdouble})
     energy_and_potential!(func, ρ,
