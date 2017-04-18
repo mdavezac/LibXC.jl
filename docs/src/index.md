@@ -79,10 +79,11 @@ accessing a C library, some care must be taken when creating these arrays.
 For the exact meaning of each dimension in each array, please refer to
 [libxc](http://octopus-code.org/wiki/Libxc)
 
-## A word about physical units
+## A word about physical units
 
 The underlying C library expects inputs in Hartree atomic units. It is possible (and
-recommended) to make units part of the type of the inputs and outputs. We use
+recommended) to make units part of the type of the inputs and outputs. When using Hartree
+atomic units with `Cdouble`, as shown below, this will not incur any overhead. We use
 [Unitful](http://ajkeller34.github.io/Unitful.jl/stable/),
 [UnitfulHartree](https://github.com/mdavezac/UnitfulHartree.jl), and to defined (within
 `LibXC.DFTUnits`) a set of units to represent the electronic density, its gradient, the
@@ -114,6 +115,10 @@ julia> 1u"∂²ϵ_∂ρ∂∇ρ"
 ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
 derivatives do not.
 
+This package adds an extra dimension 𝐞 (\mbfe) to account for electronic degrees of freedom.
+Thus the density ρ = 𝐞*a₀³, where a₀ is the Bohr radius. It is explicitly different from
+volumetric densities. Note that the dimension 𝐞 is orthogonal to charge (Coulomb).
+
 ## Using the functionals
 
 The majority of the functionality is contained in four functions, [`energy`](@rf),
@@ -134,7 +139,7 @@ julia> energy(func, Cdouble[1, 2, 3]u"rho")
 
 Note that we create an array of `Cdouble` (with the right units, as well). The underlying C
 library expects this type. Other types (and units, if not in Hartree atomic units) will
-incurr the cost of creating of a new array with the right type. More complicated functions
+incur the cost of creating of a new array with the right type. More complicated functions
 will modify existing arrays, thus removing inefficiencies due to memory allocation:
 
 ```@meta
