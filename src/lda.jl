@@ -194,12 +194,12 @@ end
 function lda!(func::AbstractLibXCFunctional{Cdouble},
               ρ::DenseArray{Units.ρ{Cdouble}}, ϵ::DenseArray{Units.ϵ{Cdouble}},
               ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}})
-    AllLDA(energy_and_potential!(ρ, ϵ, ∂ϵ_∂ρ)...,
+    AllLDA(energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)...,
            Units.∂²ϵ_∂ρ²{Cdouble}[], Units.∂³ϵ_∂ρ³{Cdouble}[])
 end
 function lda!(func::AbstractLibXCFunctional{Cdouble},
               ρ::DenseArray{Units.ρ{Cdouble}}, ϵ::DenseArray{Units.ϵ{Cdouble}})
-    AllLDA(energy!(ρ, ϵ), Units.∂ϵ_∂ρ{Cdouble}[],
+    AllLDA(energy!(func, ρ, ϵ), Units.∂ϵ_∂ρ{Cdouble}[],
            Units.∂²ϵ_∂ρ²{Cdouble}[], Units.∂³ϵ_∂ρ³{Cdouble}[])
 end
 

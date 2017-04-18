@@ -7,6 +7,7 @@ using DocStringExtensions
 using Unitful
 using UnitfulHartree
 using LibXC.DFTUnits: 𝐞
+using LibXC: DFTUnits
 
 """
     $(SIGNATURES)
@@ -23,7 +24,7 @@ function conversion{Q <: Unitful.Quantity}(u::Unitful.Units, input::Array{Q})
 end
 
 """
-$(SIGNATURES)
+    $(SIGNATURES)
 
 Assumes given units and converts to Cdouble. This function is meant to simplify the process
 of creating a valid array for LibXC.
@@ -36,28 +37,27 @@ end
 
 conversion{Q <: Unitful.Quantity}(::Type{Q}, input::Array) = conversion(unit(Q(1)), input)
 
-macro _dim_helper(name, quant)
-    q = eval(quant)
-    dims = typeof(dimension(q))
-    units = typeof(unit(q))
+macro _dim_helper(name, units)
+    dims = typeof(dimension(eval(units)))
+    tunits = typeof(eval(units))
     esc(quote
-        Unitful.Compat.@compat ($name){T} = Unitful.Quantity{T, $dims, $units}
+        Unitful.Compat.@compat ($name){T} = Unitful.Quantity{T, $dims, $tunits}
         $name(val::Number) = $name{typeof(val)}(val)
-        Unitful.unit(::Type{$name}) = $units()
+        Unitful.unit(::Type{$name}) = $tunits()
         end)
 end
 
-@_dim_helper ρ         𝐞*1u"a₀^-3"
-@_dim_helper σ         𝐞*1u"a₀^-4"
-@_dim_helper ϵ         1u"Eₕ"/𝐞
-@_dim_helper ∂ϵ_∂ρ     𝐞^-2*1u"Eₕ*a₀^3"
-@_dim_helper ∂ϵ_∂σ     𝐞^-2*1u"Eₕ*a₀^4"
-@_dim_helper ∂²ϵ_∂ρ²   𝐞^-3*1u"Eₕ*a₀^6"
-@_dim_helper ∂²ϵ_∂σ²   𝐞^-3*1u"Eₕ*a₀^8"
-@_dim_helper ∂²ϵ_∂ρ∂σ  𝐞^-3*1u"Eₕ*a₀^7"
-@_dim_helper ∂³ϵ_∂ρ³   𝐞^-4*1u"Eₕ*a₀^9"
-@_dim_helper ∂³ϵ_∂σ³   𝐞^-4*1u"Eₕ*a₀^12"
-@_dim_helper ∂³ϵ_∂ρ²∂σ 𝐞^-4*1u"Eₕ*a₀^10"
-@_dim_helper ∂³ϵ_∂ρ∂σ² 𝐞^-4*1u"Eₕ*a₀^11"
+@_dim_helper ρ          DFTUnits.ρ
+@_dim_helper ∇ρ         DFTUnits.∇ρ
+@_dim_helper ϵ          DFTUnits.ϵ
+@_dim_helper ∂ϵ_∂ρ      DFTUnits.∂ϵ_∂ρ
+@_dim_helper ∂ϵ_∂∇ρ     DFTUnits.∂ϵ_∂∇ρ
+@_dim_helper ∂²ϵ_∂ρ²    DFTUnits.∂²ϵ_∂ρ²
+@_dim_helper ∂²ϵ_∂∇ρ²   DFTUnits.∂²ϵ_∂∇ρ²
+@_dim_helper ∂²ϵ_∂ρ∂∇ρ  DFTUnits.∂²ϵ_∂ρ∂∇ρ
+@_dim_helper ∂³ϵ_∂ρ³    DFTUnits.∂³ϵ_∂ρ³
+@_dim_helper ∂³ϵ_∂∇ρ³   DFTUnits.∂³ϵ_∂∇ρ³
+@_dim_helper ∂³ϵ_∂ρ²∂∇ρ DFTUnits.∂³ϵ_∂ρ²∂∇ρ
+@_dim_helper ∂³ϵ_∂ρ∂∇ρ² DFTUnits.∂³ϵ_∂ρ∂∇ρ²
 
 end

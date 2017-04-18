@@ -7,7 +7,8 @@ export libxc_functionals
 
 using DocStringExtensions
 using NamedTuples: @NT
-using Unitful: Quantity
+using Unitful: Quantity, @u_str
+export @u_str
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
