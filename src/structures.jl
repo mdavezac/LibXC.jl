@@ -1,5 +1,3 @@
-typealias CReal Union{Cfloat, Cdouble}
-
 type CFuncReferenceType
     ref::Cstring
     doi::Cstring

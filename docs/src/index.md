@@ -2,6 +2,8 @@
 CurrentModule = LibXC
 DocTestSetup = quote
     using LibXC
+    using Unitful
+    using UnitfulHartree
     func = XCFunctional(:lda_x, false)
 end
 ```
@@ -41,8 +43,8 @@ The functionals can be queried for their [`kind`](@ref), [`family`](@ref),
 
 ## A word about input dimensionality
 
-The functionals expect input arrays ρ and σ=|∇ρ|, and (optionally) a number of output
-arrays, for the energy `εxc`, and the different derivatives, e.g. ∂εxc/∂ρ. Because we are
+The functionals expect input arrays ρ and ∇ρ=|∇ρ|, and (optionally) a number of output
+arrays, for the energy `ϵ`, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are
 accessing a C library, some care must be taken when creating these arrays.
 
 * All arrays must be dense (contiguous in memory) and the element type must match `Cdouble`
@@ -51,31 +53,66 @@ accessing a C library, some care must be taken when creating these arrays.
 * spin-polarized cases: the **first** dimension of ρ must be 2: `size(ρ) = (2, ....)`. Other
   arrays must match in very specific ways:
 
-  |LDA         | unpolarized | polarized                 |
-  |------------|-------------|---------------------------|
-  |ρ           | any         | `(2, ...)`                |
-  |εxc         | `size(ρ)`   | `size(ρ)[2:end]`          |
-  |∂εxc/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
-  |∂²εxc/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+  |LDA       | unpolarized | polarized                 |
+  |----------|-------------|---------------------------|
+  |ρ         | any         | `(2, ...)`                |
+  |ϵ         | `size(ρ)`   | `size(ρ)[2:end]`          |
+  |∂ϵ/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
+  |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
 
-  |GGA         | unpolarized | polarized                 |
-  |------------|-------------|---------------------------|
-  |ρ           | any         | `(2, ...)`                |
-  |σ           | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |εxc         | `size(ρ)`   | `size(ρ)[2:end]`          |
-  |∂εxc/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
-  |∂εxc/∂σ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂ρ∂σ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂²εxc/∂σ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ²∂σ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
-  |∂³εxc/∂ρ∂σ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
-  |∂³εxc/∂σ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
+  |GGA       | unpolarized | polarized                 |
+  |----------|-------------|---------------------------|
+  |ρ         | any         | `(2, ...)`                |
+  |∇ρ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |ϵ         | `size(ρ)`   | `size(ρ)[2:end]`          |
+  |∂ϵ/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
+  |∂ϵ/∂∇ρ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ∂∇ρ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂∇ρ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ²∂∇ρ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ∂∇ρ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
+  |∂³ϵ/∂∇ρ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
 
 For the exact meaning of each dimension in each array, please refer to
 [libxc](http://octopus-code.org/wiki/Libxc)
+
+## A word about physical units
+
+The underlying C library expects inputs in Hartree atomic units. It is possible (and
+recommended) to make units part of the type of the inputs and outputs. We use
+[Unitful](http://ajkeller34.github.io/Unitful.jl/stable/),
+[UnitfulHartree](https://github.com/mdavezac/UnitfulHartree.jl), and to defined (within
+`LibXC.DFTUnits`) a set of units to represent the electronic density, its gradient, the
+exchange-correlation energy densities, and their derivatives. These units can be accessed in
+the standard way:
+
+```jldoctest
+julia> using LibXC;
+
+julia> 1u"ρ"
+1 ρ
+
+julia> 1u"∇ρ"
+1 ∇ρ
+
+julia> 1u"grho"
+1 ∇ρ
+
+julia> 1u"ϵ"
+1 ϵ
+
+julia> 1u"Exc"
+1 ϵ
+
+julia> 1u"∂²ϵ_∂ρ∂∇ρ"
+1 ∂²ϵ_∂ρ∂∇ρ
+```
+
+ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
+derivatives do not.
 
 ## Using the functionals
 
@@ -88,33 +125,37 @@ each call.
 ```jldoctest
 julia> func = XCFunctional(:lda_x, false);
 
-julia> energy(func, Cdouble[1, 2, 3])
-3-element Array{Float64,1}:
- -0.738559
- -0.930526
- -1.06519
+julia> energy(func, Cdouble[1, 2, 3]u"rho")
+3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
+ -0.738559 ϵ
+ -0.930526 ϵ
+  -1.06519 ϵ
 ```
 
-
-More complicated functions will modify existing arrays, thus removing inefficiencies due to
-memory allocation:
+Note that we create an array of `Cdouble` (with the right units, as well). The underlying C
+library expects this type. Other types (and units, if not in Hartree atomic units) will
+incurr the cost of creating of a new array with the right type. More complicated functions
+will modify existing arrays, thus removing inefficiencies due to memory allocation:
 
 ```@meta
 DocTestSetup = quote
     using LibXC
+    using Unitful
     func = XCFunctional(:lda_x, false)
 end
 ```
 
 ```jldoctest
-julia> ρ = Cdouble[1, 2, 3];
+julia> ρ = Cdouble[1, 2, 3]u"rho";
 
-julia> εxc, pot = similar(ρ), similar(ρ);
+julia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});
 
-julia> result = energy_and_potential!(func, ρ, εxc, pot)
-(energy = [-0.738559,-0.930526,-1.06519], potential = [-0.984745,-1.2407,-1.42025])
+julia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});
 
-julia> result.energy === εxc
+julia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)
+(ϵ = [-0.738559,-0.930526,-1.06519]u"ϵ", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u"∂ϵ_∂ρ")
+
+julia> result.ϵ === ϵ
 true
 ```
 

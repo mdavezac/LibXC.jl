@@ -1,3 +1,4 @@
+__precompile__()
 module LibXC
 export description, kind, family, flags, citations, spin, energy, energy!
 export potential, potential!, second_energy_derivative, third_energy_derivative
@@ -5,13 +6,20 @@ export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga
 export libxc_functionals
 
 using DocStringExtensions
-using NamedTuples: @NT
+using Unitful: Quantity, @u_str
+export @u_str
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")
 else
     error("LiBXC not properly installed. Please run Pkg.build(\"LibXC\")")
 end
+
+""" Floating points LibXC might now about """
+typealias CReal Union{Cfloat, Cdouble}
+
+include("DFTUnits.jl")
+include("units.jl")
 
 include("structures.jl")
 include("constants.jl")
@@ -207,8 +215,11 @@ function output_size(s::Constants.SPIN, dims::NTuple, factor::Integer)
 end
 
 
+include("checks.jl")
+include("named_tuples.jl")
 include("lda.jl")
 include("gga.jl")
+include("overloads.jl")
 
 
 """ Prints functional to markdown, mostly for docs """
