@@ -143,6 +143,13 @@ end
         @test ϵ ≈ expected[:ε]
         @test ∂ϵ_∂ρ ≈ expected[:v]
 
+        # checks unit and type conversion
+        rho = reinterpret(Cdouble, LibXC.Units.conversion(u"𝐞*m^-3", ρ))
+        rho = Float32[r for r in rho]u"𝐞*m^-3"
+        with_conv = energy_and_potential(:lda_x, rho)
+        @test with_conv[1] ≈ ϵ
+        @test with_conv[2] ≈ ∂ϵ_∂ρ
+
         ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρ)
         @test ϵ ≈ expected[:ε]
         @test ∂ϵ_∂ρ ≈ expected[:v]
