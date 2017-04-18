@@ -212,7 +212,11 @@ function third_energy_derivative(func::AbstractLibXCFunctional, ρ::DenseArray{C
                               similar(ρ, eltype(ρ), output_size(func, ρ, 10)))
 end
 
-""" GGA energy and potential """
+"""
+    $(SIGNATURES)
+
+GGA energy and potential
+"""
 function energy_and_potential!(func::AbstractLibXCFunctional{Cdouble},
                                ρ::DenseArray{Units.ρ{Cdouble}},
                                ∇ρ::DenseArray{Units.∇ρ{Cdouble}},
@@ -367,7 +371,11 @@ function gga!(func::AbstractLibXCFunctional{Cdouble},
 end
 
 
-""" Computes the energy and all available derivatives for the given functional """
+"""
+    $(SIGNATURES)
+
+Computes the energy and all available derivatives for the given functional
+"""
 function gga(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}},
              ∇ρ::DenseArray{Units.∇ρ{Cdouble}})
     @check_functional func gga

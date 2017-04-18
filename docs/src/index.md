@@ -43,7 +43,7 @@ The functionals can be queried for their [`kind`](@ref), [`family`](@ref),
 
 ## A word about input dimensionality
 
-The functionals expect input arrays ρ and ∇ρ=|∇ρ|, and (optionally) a number of output
+The functionals expect input arrays ρ and ∇ρ, and (optionally) a number of output
 arrays, for the energy `ϵ`, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are
 accessing a C library, some care must be taken when creating these arrays.
 
@@ -61,17 +61,17 @@ accessing a C library, some care must be taken when creating these arrays.
   |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
   |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
 
-  |GGA       | unpolarized | polarized                 |
-  |----------|-------------|---------------------------|
-  |ρ         | any         | `(2, ...)`                |
+  |GGA        | unpolarized | polarized                 |
+  |-----------|-------------|---------------------------|
+  |ρ          | any         | `(2, ...)`                |
   |∇ρ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |ϵ         | `size(ρ)`   | `size(ρ)[2:end]`          |
-  |∂ϵ/∂ρ     | `size(ρ)`   | `size(ρ)`                 |
+  |ϵ          | `size(ρ)`   | `size(ρ)[2:end]`          |
+  |∂ϵ/∂ρ      | `size(ρ)`   | `size(ρ)`                 |
   |∂ϵ/∂∇ρ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²ϵ/∂ρ²   | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ²    | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
   |∂²ϵ/∂ρ∂∇ρ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
   |∂²ϵ/∂∇ρ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂³ϵ/∂ρ³   | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ³    | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
   |∂³ϵ/∂ρ²∂∇ρ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
   |∂³ϵ/∂ρ∂∇ρ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
   |∂³ϵ/∂∇ρ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
@@ -121,11 +121,9 @@ volumetric densities. Note that the dimension 𝐞 is orthogonal to charge (Coul
 
 ## Using the functionals
 
-The majority of the functionality is contained in four functions, [`energy`](@rf),
-[`potential`](@ref), [`second_energy_derivative`](@ref),
-[`third_energy_derivative`](@ref). Note that user-friendly overloads exist that make
-pre-allocating a functional. However, those options do come with some small overhead with
-each call.
+Once a functional is created, it can be called with a number of methods to compute the
+energy, the potential, as well as the second and third energy derivatives (when available
+for that functional).
 
 ```jldoctest
 julia> func = XCFunctional(:lda_x, false);
@@ -139,8 +137,68 @@ julia> energy(func, Cdouble[1, 2, 3]u"rho")
 
 Note that we create an array of `Cdouble` (with the right units, as well). The underlying C
 library expects this type. Other types (and units, if not in Hartree atomic units) will
-incur the cost of creating of a new array with the right type. More complicated functions
-will modify existing arrays, thus removing inefficiencies due to memory allocation:
+incur the cost of creating of a new array with the right type.
+
+The following functions are available:
+
+* [`energy`](@ref)
+* [`potential`](@ref)
+* [`energy_and_potential`](@ref)
+* [`second_energy_derivative`](@ref)
+* [`third_energy_derivative`](@ref)
+* [`lda`](@ref) (all possible lda for the given functional outputs)
+* [`gga`](@ref) (all possible gga outputs for the given functional)
+
+All these functions have overloads which hide the creation of a functional from the user:
+
+```jldoctest
+julia> energy(:lda_x, [1, 2, 3]u"ρ")
+3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
+ -0.738559 ϵ
+ -0.930526 ϵ
+  -1.06519 ϵ
+
+julia> energy(:lda_x, [1 2 3; 3 2 1]u"ρ")
+3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
+ -1.23917 ϵ
+ -1.17239 ϵ
+ -1.23917 ϵ
+
+julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"ρ")
+2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:
+ -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ
+  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵ
+```
+
+In most cases, the overhead of creating and destroying a C functional object at each call is
+likely too small to matter.
+
+The spin-polarization can be specified in the second argument (`true` for spin-polarized,
+`false` for spin-polarized). If this argument is not given, then a best-guess attempt is
+made: the functional is spin-polarized when ρ is at least two-dimensional and the *first*
+dimension of ρ is two (`size(ρ, 1) == 2`), and the functional is unpolarized in all other
+cases.
+
+Finally, it is possible to give inputs in different units. However, this will incur the cost
+of converting the array to the Hartree atomic units, both in terms of memory (an extra array
+is allocated) and in terms of compute (the actual conversion). The return is always in
+atomic units:
+
+```jldoctest
+julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"𝐞/nm^3")
+2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:
+ -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ
+ -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵ
+```
+
+The `𝐞` can be accessed in the Julia REPL by typing `\mbfe` followed by TAB (for tab
+completion).
+
+## Using pre-allocated output array
+
+Similar functions exist that take pre-allocated output arrays. Following `Julia`
+conventions, these functions are named `energy!`, `potential!`, etc... Each function named
+above has an `xxx!` counterpart.
 
 ```@meta
 DocTestSetup = quote

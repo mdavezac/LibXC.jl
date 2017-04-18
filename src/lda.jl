@@ -82,7 +82,7 @@ function second_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
 end
 
 """
-$(SIGNATURES)
+    $(SIGNATURES)
 
 Computes the third energy derivative in-place for a given LDA functional. For
 spin-unpolarized functionals, the output array has the dimensions of `ρ`. For spin-polarized
@@ -108,21 +108,40 @@ function third_energy_derivative!(func::AbstractLibXCFunctional{Cdouble},
     ∂³ϵ_∂ρ³
 end
 
-""" Stateless function for computing LDA energies """
+"""
+    $(SIGNATURES)
+
+Computes the LDA energy density associated with the input density.
+"""
 function energy(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}})
     energy!(func, ρ, similar(ρ, Units.ϵ{Cdouble}, output_size(func, ρ, 1)))
 end
-""" Stateless function for computing LDA first derivatives """
+
+"""
+    $(SIGNATURES)
+
+Computes the LDA potential associated with the input density.
+"""
 function potential(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}})
     potential!(func, ρ, similar(ρ, Units.∂ϵ_∂ρ{Cdouble}, output_size(func, ρ, 2)))
 end
-""" Stateless function for computing LDA second derivatives """
+
+"""
+    $(SIGNATURES)
+
+Computes the LDA second energy derivatives associated with the input density.
+"""
 function second_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
                                   ρ::DenseArray{Units.ρ{Cdouble}})
     second_energy_derivative!(func, ρ,
                               similar(ρ, Units.∂²ϵ_∂ρ²{Cdouble}, output_size(func, ρ, 3)))
 end
-""" Stateless function for computing LDA third derivatives """
+
+"""
+    $(SIGNATURES)
+
+Computes the LDA third energy derivatives associated with the input density.
+"""
 function third_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
                                  ρ::DenseArray{Units.ρ{Cdouble}})
     third_energy_derivative!(func, ρ,
@@ -203,7 +222,11 @@ function lda!(func::AbstractLibXCFunctional{Cdouble},
            Units.∂²ϵ_∂ρ²{Cdouble}[], Units.∂³ϵ_∂ρ³{Cdouble}[])
 end
 
-""" LDA energy and first derivative """
+"""
+    $(SIGNATURES)
+
+LDA energy and first derivative
+"""
 function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
                                ϵ::DenseArray{Cdouble}, ∂ϵ_∂ρ::DenseArray{Cdouble})
     @check_functional func lda
@@ -240,7 +263,11 @@ function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
                           similar(ρ, Units.∂ϵ_∂ρ{Cdouble}))
 end
 
-""" Computes the energy and all available derivatives for the given functional """
+"""
+    $(SIGNATURES)
+
+Computes the energy and all available derivatives for the given functional
+"""
 function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
     @check_functional func lda
 
@@ -266,8 +293,6 @@ function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Cdouble})
         throw(ArgumentError("Not sure what this functional can do"))
     end
 end
-
-""" Computes the energy and all available derivatives for the given functional """
 function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DenseArray{Units.ρ{Cdouble}})
     @check_functional func lda
 
