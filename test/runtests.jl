@@ -144,8 +144,8 @@ end
         @test ∂ϵ_∂ρ ≈ expected[:v]
 
         # checks unit and type conversion
-        rho = reinterpret(Cdouble, LibXC.Units.conversion(u"𝐞*m^-3", ρ))
-        rho = Float32[r for r in rho]u"𝐞*m^-3"
+        rho = reinterpret(Cdouble, LibXC.Units.conversion(u"m^-3", ρ))
+        rho = Float32[r for r in rho]u"m^-3"
         with_conv = energy_and_potential(:lda_x, rho)
         @test with_conv[1] ≈ ϵ
         @test with_conv[2] ≈ ∂ϵ_∂ρ
@@ -220,7 +220,7 @@ end
         ∇ρs = reinterpret(LibXC.Units.∇ρ{Cdouble},
                          vcat(input[:∇ρ_aa]', input[:∇ρ_ab]', input[:∇ρ_bb]'))
         @test energy(:gga_c_pbe, ρs, ∇ρs) ≈ expected[:ε]
-        @test energy(:gga_c_pbe, LibXC.Units.conversion(u"𝐞*m^-3", ρs), ∇ρs) ≈ expected[:ε]
+        @test energy(:gga_c_pbe, LibXC.Units.conversion(u"m^-3", ρs), ∇ρs) ≈ expected[:ε]
 
         pot = potential(:gga_c_pbe, ρs, ∇ρs)
         @test pot.∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')

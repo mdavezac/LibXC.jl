@@ -1,12 +1,11 @@
 """ LibXC compatible units
 
-Helps with dispatching over different units to hartree units.
+Helps with dispatching over different units in hartree units.
 """
 module Units
 using DocStringExtensions
 using Unitful
 using UnitfulHartree
-using LibXC.DFTUnits: 𝐞
 using LibXC: DFTUnits
 
 """

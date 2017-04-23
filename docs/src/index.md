@@ -115,10 +115,6 @@ julia> 1u"∂²ϵ_∂ρ∂∇ρ"
 ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
 derivatives do not.
 
-This package adds an extra dimension 𝐞 (\mbfe) to account for electronic degrees of freedom.
-Thus the density ρ = 𝐞*a₀³, where a₀ is the Bohr radius. It is explicitly different from
-volumetric densities. Note that the dimension 𝐞 is orthogonal to charge (Coulomb).
-
 ## Using the functionals
 
 Once a functional is created, it can be called with a number of methods to compute the
@@ -185,14 +181,11 @@ is allocated) and in terms of compute (the actual conversion). The return is alw
 atomic units:
 
 ```jldoctest
-julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"𝐞/nm^3")
+julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"nm^-3")
 2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:
  -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ
  -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵ
 ```
-
-The `𝐞` can be accessed in the Julia REPL by typing `\mbfe` followed by TAB (for tab
-completion).
 
 ## Using pre-allocated output array
 
