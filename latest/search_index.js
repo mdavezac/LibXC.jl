@@ -45,7 +45,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "A word about physical units",
     "category": "section",
-    "text": "The underlying C library expects inputs in Hartree atomic units. It is possible (and recommended) to make units part of the type of the inputs and outputs. When using Hartree atomic units with Cdouble, as shown below, this will not incur any overhead. We use Unitful, UnitfulHartree, and to defined (within LibXC.DFTUnits) a set of units to represent the electronic density, its gradient, the exchange-correlation energy densities, and their derivatives. These units can be accessed in the standard way:julia> using LibXC;\n\njulia> 1u\"ρ\"\n1 ρ\n\njulia> 1u\"∇ρ\"\n1 ∇ρ\n\njulia> 1u\"grho\"\n1 ∇ρ\n\njulia> 1u\"ϵ\"\n1 ϵ\n\njulia> 1u\"Exc\"\n1 ϵ\n\njulia> 1u\"∂²ϵ_∂ρ∂∇ρ\"\n1 ∂²ϵ_∂ρ∂∇ρρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy derivatives do not.This package adds an extra dimension 𝐞 (\\mbfe) to account for electronic degrees of freedom. Thus the density ρ = 𝐞*a₀³, where a₀ is the Bohr radius. It is explicitly different from volumetric densities. Note that the dimension 𝐞 is orthogonal to charge (Coulomb)."
+    "text": "The underlying C library expects inputs in Hartree atomic units. It is possible (and recommended) to make units part of the type of the inputs and outputs. When using Hartree atomic units with Cdouble, as shown below, this will not incur any overhead. We use Unitful, UnitfulHartree, and to defined (within LibXC.DFTUnits) a set of units to represent the electronic density, its gradient, the exchange-correlation energy densities, and their derivatives. These units can be accessed in the standard way:julia> using LibXC;\n\njulia> 1u\"ρ\"\n1 ρ\n\njulia> 1u\"∇ρ\"\n1 ∇ρ\n\njulia> 1u\"grho\"\n1 ∇ρ\n\njulia> 1u\"ϵ\"\n1 ϵ\n\njulia> 1u\"Exc\"\n1 ϵ\n\njulia> 1u\"∂²ϵ_∂ρ∂∇ρ\"\n1 ∂²ϵ_∂ρ∂∇ρρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy derivatives do not."
 },
 
 {
@@ -53,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Using the functionals",
     "category": "section",
-    "text": "Once a functional is created, it can be called with a number of methods to compute the energy, the potential, as well as the second and third energy derivatives (when available for that functional).julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type.The following functions are available:energy\npotential\nenergy_and_potential\nsecond_energy_derivative\nthird_energy_derivative\nlda (all possible lda for the given functional outputs)\ngga (all possible gga outputs for the given functional)All these functions have overloads which hide the creation of a functional from the user:julia> energy(:lda_x, [1, 2, 3]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵ\n\njulia> energy(:lda_x, [1 2 3; 3 2 1]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -1.23917 ϵ\n -1.17239 ϵ\n -1.23917 ϵ\n\njulia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"ρ\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ\n  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵIn most cases, the overhead of creating and destroying a C functional object at each call is likely too small to matter.The spin-polarization can be specified in the second argument (true for spin-polarized, false for spin-polarized). If this argument is not given, then a best-guess attempt is made: the functional is spin-polarized when ρ is at least two-dimensional and the first dimension of ρ is two (size(ρ, 1) == 2), and the functional is unpolarized in all other cases.Finally, it is possible to give inputs in different units. However, this will incur the cost of converting the array to the Hartree atomic units, both in terms of memory (an extra array is allocated) and in terms of compute (the actual conversion). The return is always in atomic units:julia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"𝐞/nm^3\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ\n -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵThe 𝐞 can be accessed in the Julia REPL by typing \\mbfe followed by TAB (for tab completion)."
+    "text": "Once a functional is created, it can be called with a number of methods to compute the energy, the potential, as well as the second and third energy derivatives (when available for that functional).julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type.The following functions are available:energy\npotential\nenergy_and_potential\nsecond_energy_derivative\nthird_energy_derivative\nlda (all possible lda for the given functional outputs)\ngga (all possible gga outputs for the given functional)All these functions have overloads which hide the creation of a functional from the user:julia> energy(:lda_x, [1, 2, 3]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵ\n\njulia> energy(:lda_x, [1 2 3; 3 2 1]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -1.23917 ϵ\n -1.17239 ϵ\n -1.23917 ϵ\n\njulia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"ρ\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ\n  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵIn most cases, the overhead of creating and destroying a C functional object at each call is likely too small to matter.The spin-polarization can be specified in the second argument (true for spin-polarized, false for spin-polarized). If this argument is not given, then a best-guess attempt is made: the functional is spin-polarized when ρ is at least two-dimensional and the first dimension of ρ is two (size(ρ, 1) == 2), and the functional is unpolarized in all other cases.Finally, it is possible to give inputs in different units. However, this will incur the cost of converting the array to the Hartree atomic units, both in terms of memory (an extra array is allocated) and in terms of compute (the actual conversion). The return is always in atomic units:julia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"nm^-3\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ\n -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵ"
 },
 
 {
@@ -97,7 +97,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
+    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
     "page": "Home",
     "title": "LibXC.energy!",
     "category": "Method",
@@ -105,7 +105,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
+    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
     "page": "Home",
     "title": "LibXC.energy!",
     "category": "Method",
@@ -129,7 +129,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N}}",
+    "location": "index.html#LibXC.energy-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N}}",
     "page": "Home",
     "title": "LibXC.energy",
     "category": "Method",
@@ -161,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy_and_potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
+    "location": "index.html#LibXC.energy_and_potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
     "page": "Home",
     "title": "LibXC.energy_and_potential!",
     "category": "Method",
@@ -225,7 +225,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.gga-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N}}",
+    "location": "index.html#LibXC.gga-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N}}",
     "page": "Home",
     "title": "LibXC.gga",
     "category": "Method",
@@ -297,7 +297,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N}}",
+    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N}}",
     "page": "Home",
     "title": "LibXC.potential!",
     "category": "Method",
@@ -305,7 +305,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
+    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
     "page": "Home",
     "title": "LibXC.potential!",
     "category": "Method",
@@ -329,7 +329,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.potential-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N}}",
+    "location": "index.html#LibXC.potential-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N}}",
     "page": "Home",
     "title": "LibXC.potential",
     "category": "Method",
@@ -353,7 +353,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N}}",
+    "location": "index.html#LibXC.second_energy_derivative-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N}}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative",
     "category": "Method",
@@ -385,7 +385,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N}}",
+    "location": "index.html#LibXC.third_energy_derivative-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N}}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative",
     "category": "Method",
@@ -513,7 +513,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^2 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂∇ρ²}},N}}",
+    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂∇ρ²}},N}}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative!",
     "category": "Method",
@@ -521,7 +521,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N}}",
+    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N}}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative!",
     "category": "Method",
@@ -545,7 +545,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N}}",
+    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N}}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative!",
     "category": "Method",
@@ -553,7 +553,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^2 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ²∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^3 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ∂∇ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐄 𝐋^4 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂∇ρ³}},N}}",
+    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ²∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^3 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ∂∇ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^4 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂∇ρ³}},N}}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative!",
     "category": "Method",
