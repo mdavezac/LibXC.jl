@@ -91,25 +91,25 @@ exchange-correlation energy densities, and their derivatives. These units can be
 the standard way:
 
 ```jldoctest
-julia> using LibXC;
+julia> using LibXC, UnitfulHartree, Unitful
 
-julia> 1u"ρ"
-1 ρ
+julia> 1u"ρ" === 1u"rho" == 1u"a₀^-3"
+true
 
-julia> 1u"∇ρ"
-1 ∇ρ
+julia> 1u"∇ρ" === 1u"grho" == 1u"a₀^-4"
+true
 
-julia> 1u"grho"
-1 ∇ρ
+julia> 1u"ϵ" === 1u"Exc" === 1u"Eₕ" ≈ 27.211386034310873u"eV"
+true
 
-julia> 1u"ϵ"
-1 ϵ
+julia> 1u"∂ϵ_∂ρ" == 1u"Eₕ*a₀^3"
+true
 
-julia> 1u"Exc"
-1 ϵ
+julia> 1u"∂²ϵ_∂ρ∂∇ρ" == 1u"Eₕ*a₀^7"
+true
 
-julia> 1u"∂²ϵ_∂ρ∂∇ρ"
-1 ∂²ϵ_∂ρ∂∇ρ
+julia> 1u"∂³ϵ_∂ρ²∂∇ρ" == 1u"Eₕ*a₀^10"
+true
 ```
 
 ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
