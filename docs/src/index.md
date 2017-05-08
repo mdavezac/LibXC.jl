@@ -125,10 +125,10 @@ for that functional).
 julia> func = XCFunctional(:lda_x, false);
 
 julia> energy(func, Cdouble[1, 2, 3]u"rho")
-3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
- -0.738559 ϵ
- -0.930526 ϵ
-  -1.06519 ϵ
+3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:
+ -0.738559 Eₕ
+ -0.930526 Eₕ
+  -1.06519 Eₕ
 ```
 
 Note that we create an array of `Cdouble` (with the right units, as well). The underlying C
@@ -149,21 +149,21 @@ All these functions have overloads which hide the creation of a functional from 
 
 ```jldoctest
 julia> energy(:lda_x, [1, 2, 3]u"ρ")
-3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
- -0.738559 ϵ
- -0.930526 ϵ
-  -1.06519 ϵ
+3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:
+ -0.738559 Eₕ
+ -0.930526 Eₕ
+  -1.06519 Eₕ
 
 julia> energy(:lda_x, [1 2 3; 3 2 1]u"ρ")
-3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:
- -1.23917 ϵ
- -1.17239 ϵ
- -1.23917 ϵ
+3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:
+ -1.23917 Eₕ
+ -1.17239 Eₕ
+ -1.23917 Eₕ
 
 julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"ρ")
-2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:
- -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ
-  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵ
+2×3 Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},2}:
+ -0.738559 Eₕ  -0.930526 Eₕ   -1.06519 Eₕ
+  -1.06519 Eₕ  -0.930526 Eₕ  -0.738559 Eₕ
 ```
 
 In most cases, the overhead of creating and destroying a C functional object at each call is
@@ -182,9 +182,9 @@ atomic units:
 
 ```jldoctest
 julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"nm^-3")
-2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:
- -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ
- -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵ
+2×3 Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},2}:
+ -0.0390828 Eₕ  -0.0492413 Eₕ  -0.0563672 Eₕ
+ -0.0563672 Eₕ  -0.0492413 Eₕ  -0.0390828 Eₕ
 ```
 
 ## Using pre-allocated output array
@@ -209,7 +209,7 @@ julia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});
 julia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});
 
 julia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)
-(ϵ = [-0.738559,-0.930526,-1.06519]u"ϵ", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u"∂ϵ_∂ρ")
+(ϵ = [-0.738559,-0.930526,-1.06519]u"Eₕ", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u"∂ϵ_∂ρ")
 
 julia> result.ϵ === ϵ
 true
