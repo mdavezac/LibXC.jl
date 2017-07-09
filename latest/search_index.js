@@ -45,7 +45,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "A word about physical units",
     "category": "section",
-    "text": "The underlying C library expects inputs in Hartree atomic units. It is possible (and recommended) to make units part of the type of the inputs and outputs. When using Hartree atomic units with Cdouble, as shown below, this will not incur any overhead. We use Unitful, UnitfulHartree, and to defined (within LibXC.DFTUnits) a set of units to represent the electronic density, its gradient, the exchange-correlation energy densities, and their derivatives. These units can be accessed in the standard way:julia> using LibXC;\n\njulia> 1u\"ρ\"\n1 ρ\n\njulia> 1u\"∇ρ\"\n1 ∇ρ\n\njulia> 1u\"grho\"\n1 ∇ρ\n\njulia> 1u\"ϵ\"\n1 ϵ\n\njulia> 1u\"Exc\"\n1 ϵ\n\njulia> 1u\"∂²ϵ_∂ρ∂∇ρ\"\n1 ∂²ϵ_∂ρ∂∇ρρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy derivatives do not."
+    "text": "The underlying C library expects inputs in Hartree atomic units. It is possible (and recommended) to make units part of the type of the inputs and outputs. When using Hartree atomic units with Cdouble, as shown below, this will not incur any overhead. We use Unitful, UnitfulHartree, and to defined (within LibXC.DFTUnits) a set of units to represent the electronic density, its gradient, the exchange-correlation energy densities, and their derivatives. These units can be accessed in the standard way:julia> using LibXC, UnitfulHartree, Unitful\n\njulia> 1u\"ρ\" === 1u\"rho\" == 1u\"a₀^-3\"\ntrue\n\njulia> 1u\"∇ρ\" === 1u\"grho\" == 1u\"a₀^-4\"\ntrue\n\njulia> 1u\"ϵ\" === 1u\"Exc\" === 1u\"Eₕ\" ≈ 27.211386034310873u\"eV\"\ntrue\n\njulia> 1u\"∂ϵ_∂ρ\" == 1u\"Eₕ*a₀^3\"\ntrue\n\njulia> 1u\"∂²ϵ_∂ρ∂∇ρ\" == 1u\"Eₕ*a₀^7\"\ntrue\n\njulia> 1u\"∂³ϵ_∂ρ²∂∇ρ\" == 1u\"Eₕ*a₀^10\"\ntrueρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy derivatives do not."
 },
 
 {
@@ -53,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Using the functionals",
     "category": "section",
-    "text": "Once a functional is created, it can be called with a number of methods to compute the energy, the potential, as well as the second and third energy derivatives (when available for that functional).julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type.The following functions are available:energy\npotential\nenergy_and_potential\nsecond_energy_derivative\nthird_energy_derivative\nlda (all possible lda for the given functional outputs)\ngga (all possible gga outputs for the given functional)All these functions have overloads which hide the creation of a functional from the user:julia> energy(:lda_x, [1, 2, 3]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -0.738559 ϵ\n -0.930526 ϵ\n  -1.06519 ϵ\n\njulia> energy(:lda_x, [1 2 3; 3 2 1]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},1}:\n -1.23917 ϵ\n -1.17239 ϵ\n -1.23917 ϵ\n\njulia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"ρ\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.738559 ϵ  -0.930526 ϵ   -1.06519 ϵ\n  -1.06519 ϵ  -0.930526 ϵ  -0.738559 ϵIn most cases, the overhead of creating and destroying a C functional object at each call is likely too small to matter.The spin-polarization can be specified in the second argument (true for spin-polarized, false for spin-polarized). If this argument is not given, then a best-guess attempt is made: the functional is spin-polarized when ρ is at least two-dimensional and the first dimension of ρ is two (size(ρ, 1) == 2), and the functional is unpolarized in all other cases.Finally, it is possible to give inputs in different units. However, this will incur the cost of converting the array to the Hartree atomic units, both in terms of memory (an extra array is allocated) and in terms of compute (the actual conversion). The return is always in atomic units:julia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"nm^-3\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐄^-1 𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},2}:\n -0.0390828 ϵ  -0.0492413 ϵ  -0.0563672 ϵ\n -0.0563672 ϵ  -0.0492413 ϵ  -0.0390828 ϵ"
+    "text": "Once a functional is created, it can be called with a number of methods to compute the energy, the potential, as well as the second and third energy derivatives (when available for that functional).julia> func = XCFunctional(:lda_x, false);\n\njulia> energy(func, Cdouble[1, 2, 3]u\"rho\")\n3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:\n -0.738559 Eₕ\n -0.930526 Eₕ\n  -1.06519 EₕNote that we create an array of Cdouble (with the right units, as well). The underlying C library expects this type. Other types (and units, if not in Hartree atomic units) will incur the cost of creating of a new array with the right type.The following functions are available:energy\npotential\nenergy_and_potential\nsecond_energy_derivative\nthird_energy_derivative\nlda (all possible lda for the given functional outputs)\ngga (all possible gga outputs for the given functional)All these functions have overloads which hide the creation of a functional from the user:julia> energy(:lda_x, [1, 2, 3]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:\n -0.738559 Eₕ\n -0.930526 Eₕ\n  -1.06519 Eₕ\n\njulia> energy(:lda_x, [1 2 3; 3 2 1]u\"ρ\")\n3-element Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},1}:\n -1.23917 Eₕ\n -1.17239 Eₕ\n -1.23917 Eₕ\n\njulia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"ρ\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},2}:\n -0.738559 Eₕ  -0.930526 Eₕ   -1.06519 Eₕ\n  -1.06519 Eₕ  -0.930526 Eₕ  -0.738559 EₕIn most cases, the overhead of creating and destroying a C functional object at each call is likely too small to matter.The spin-polarization can be specified in the second argument (true for spin-polarized, false for spin-polarized). If this argument is not given, then a best-guess attempt is made: the functional is spin-polarized when ρ is at least two-dimensional and the first dimension of ρ is two (size(ρ, 1) == 2), and the functional is unpolarized in all other cases.Finally, it is possible to give inputs in different units. However, this will incur the cost of converting the array to the Hartree atomic units, both in terms of memory (an extra array is allocated) and in terms of compute (the actual conversion). The return is always in atomic units:julia> energy(:lda_x, false, [1 2 3; 3 2 1]u\"nm^-3\")\n2×3 Array{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},2}:\n -0.0390828 Eₕ  -0.0492413 Eₕ  -0.0563672 Eₕ\n -0.0563672 Eₕ  -0.0492413 Eₕ  -0.0390828 Eₕ"
 },
 
 {
@@ -61,7 +61,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Using pre-allocated output array",
     "category": "section",
-    "text": "Similar functions exist that take pre-allocated output arrays. Following Julia conventions, these functions are named energy!, potential!, etc... Each function named above has an xxx! counterpart.DocTestSetup = quote\n    using LibXC\n    using Unitful\n    func = XCFunctional(:lda_x, false)\nendjulia> ρ = Cdouble[1, 2, 3]u\"rho\";\n\njulia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});\n\njulia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});\n\njulia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)\n(ϵ = [-0.738559,-0.930526,-1.06519]u\"ϵ\", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u\"∂ϵ_∂ρ\")\n\njulia> result.ϵ === ϵ\ntrueFor convenience, some of the functions with more complex outputs return a named tuple. However, notice that the arrays in the tuple are aliases to the input arrays."
+    "text": "Similar functions exist that take pre-allocated output arrays. Following Julia conventions, these functions are named energy!, potential!, etc... Each function named above has an xxx! counterpart.DocTestSetup = quote\n    using LibXC\n    using Unitful\n    func = XCFunctional(:lda_x, false)\nendjulia> ρ = Cdouble[1, 2, 3]u\"rho\";\n\njulia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});\n\njulia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});\n\njulia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)\n(ϵ = [-0.738559,-0.930526,-1.06519]u\"Eₕ\", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u\"∂ϵ_∂ρ\")\n\njulia> result.ϵ === ϵ\ntrueFor convenience, some of the functions with more complex outputs return a named tuple. However, notice that the arrays in the tuple are aliases to the input arrays."
 },
 
 {
@@ -97,7 +97,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
+    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},N}}",
     "page": "Home",
     "title": "LibXC.energy!",
     "category": "Method",
@@ -105,7 +105,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N}}",
+    "location": "index.html#LibXC.energy!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},N}}",
     "page": "Home",
     "title": "LibXC.energy!",
     "category": "Method",
@@ -161,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.energy_and_potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{ϵ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
+    "location": "index.html#LibXC.energy_and_potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌 𝐓^-2}, Units:{Eₕ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^5 𝐌 𝐓^-2}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^6 𝐌 𝐓^-2}, Units:{∂ϵ_∂∇ρ}},N}}",
     "page": "Home",
     "title": "LibXC.energy_and_potential!",
     "category": "Method",
@@ -297,19 +297,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N}}",
-    "page": "Home",
-    "title": "LibXC.potential!",
-    "category": "Method",
-    "text": "potential!(func, ρ, ∂ϵ_∂ρ)\n\n\nComputes the potential in-place for a given LDA functional. For spin-unpolarized functionals, the output array has the dimensions of ρ. For spin-polarized functionals, assuming ndims(ρ) > 1 && size(ρ, 1) == 2, it is size(ρ).\n\n\n\n"
-},
-
-{
-    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-1 𝐌^-2 𝐓^4}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-2 𝐓^4}, Units:{∂ϵ_∂∇ρ}},N}}",
+    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^5 𝐌 𝐓^-2}, Units:{∂ϵ_∂ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^6 𝐌 𝐓^-2}, Units:{∂ϵ_∂∇ρ}},N}}",
     "page": "Home",
     "title": "LibXC.potential!",
     "category": "Method",
     "text": "potential!(func, ρ, ∇ρ, ∂ϵ_∂ρ, ∂ϵ_∂∇ρ)\n\n\nGGA potential computed in place. The dimensionality of the different arrays are as follows:\n\nGGA unpolarized polarized\nρ any (2, ...)\n∇ρ size(ρ) (3, size(ρ)[2:end]...)\n∂ϵ/∂ρ size(ρ) size(ρ)\n∂ϵ/∂∇ρ size(ρ) (3, size(ρ)[2:end]...)\n\n\n\n"
+},
+
+{
+    "location": "index.html#LibXC.potential!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^5 𝐌 𝐓^-2}, Units:{∂ϵ_∂ρ}},N}}",
+    "page": "Home",
+    "title": "LibXC.potential!",
+    "category": "Method",
+    "text": "potential!(func, ρ, ∂ϵ_∂ρ)\n\n\nComputes the potential in-place for a given LDA functional. For spin-unpolarized functionals, the output array has the dimensions of ρ. For spin-polarized functionals, assuming ndims(ρ) > 1 && size(ρ, 1) == 2, it is size(ρ).\n\n\n\n"
 },
 
 {
@@ -513,7 +513,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂∇ρ²}},N}}",
+    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^8 𝐌 𝐓^-2}, Units:{∂²ϵ_∂ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^9 𝐌 𝐓^-2}, Units:{∂²ϵ_∂ρ∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^10 𝐌 𝐓^-2}, Units:{∂²ϵ_∂∇ρ²}},N}}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative!",
     "category": "Method",
@@ -521,7 +521,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐌^-3 𝐓^6}, Units:{∂²ϵ_∂ρ²}},N}}",
+    "location": "index.html#LibXC.second_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^8 𝐌 𝐓^-2}, Units:{∂²ϵ_∂ρ²}},N}}",
     "page": "Home",
     "title": "LibXC.second_energy_derivative!",
     "category": "Method",
@@ -545,19 +545,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N}}",
-    "page": "Home",
-    "title": "LibXC.third_energy_derivative!",
-    "category": "Method",
-    "text": "third_energy_derivative!(func, ρ, ∂³ϵ_∂ρ³)\n\n\nComputes the third energy derivative in-place for a given LDA functional. For spin-unpolarized functionals, the output array has the dimensions of ρ. For spin-polarized functionals, assuming ndims(ρ) > 1 && size(ρ, 1) == 2, it is (4, size(ρ)[2:end]...).\n\n\n\n"
-},
-
-{
-    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ³}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^2 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ²∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^3 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂ρ∂∇ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^4 𝐌^-4 𝐓^8}, Units:{∂³ϵ_∂∇ρ³}},N}}",
+    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^-4}, Units:{∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^11 𝐌 𝐓^-2}, Units:{∂³ϵ_∂ρ³}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^12 𝐌 𝐓^-2}, Units:{∂³ϵ_∂ρ²∂∇ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^13 𝐌 𝐓^-2}, Units:{∂³ϵ_∂ρ∂∇ρ²}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^14 𝐌 𝐓^-2}, Units:{∂³ϵ_∂∇ρ³}},N}}",
     "page": "Home",
     "title": "LibXC.third_energy_derivative!",
     "category": "Method",
     "text": "third_energy_derivative!(func, ρ, ∇ρ, ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ²∂∇ρ, ∂³ϵ_∂ρ∂∇ρ², ∂³ϵ_∂∇ρ³)\n\n\nThird derivatives of GGA energy w.r.t. ρ and ∇ρ=|∇ρ|. The dimensionality of the arrays is as follows:\n\nGGA unpolarized polarized\nρ any (2, ...)\n∇ρ size(ρ) (3, size(ρ)[2:end]...)\n∂³ϵ/∂ρ³ size(ρ) (4, size(ρ)[2:end]...)\n∂³ϵ/∂ρ²∂∇ρ size(ρ) (9, size(ρ)[2:end]...)\n∂³ϵ/∂ρ∂∇ρ² size(ρ) (10, size(ρ)[2:end]...)\n∂³ϵ/∂∇ρ³ size(ρ) (12, size(ρ)[2:end]...)\n\n\n\n"
+},
+
+{
+    "location": "index.html#LibXC.third_energy_derivative!-Tuple{LibXC.AbstractLibXCFunctional{Float64},DenseArray{Quantity{Float64, Dimensions:{𝐋^-3}, Units:{ρ}},N},DenseArray{Quantity{Float64, Dimensions:{𝐋^11 𝐌 𝐓^-2}, Units:{∂³ϵ_∂ρ³}},N}}",
+    "page": "Home",
+    "title": "LibXC.third_energy_derivative!",
+    "category": "Method",
+    "text": "third_energy_derivative!(func, ρ, ∂³ϵ_∂ρ³)\n\n\nComputes the third energy derivative in-place for a given LDA functional. For spin-unpolarized functionals, the output array has the dimensions of ρ. For spin-polarized functionals, assuming ndims(ρ) > 1 && size(ρ, 1) == 2, it is (4, size(ρ)[2:end]...).\n\n\n\n"
 },
 
 {
