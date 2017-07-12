@@ -1,3 +1,9 @@
+module Checks
+using LibXC: family, Constants, flags, output_size
+
+export @check_functional, @check_availability, @check_size
+
+
 """ Adds check for functional type """
 macro check_functional(funcname, functype)
     msg = "Incorrect number of arguments: input is not an $functype functional"
@@ -22,4 +28,4 @@ macro check_size(funcname, rhoname, outname, factor)
         end
     end
 end
-
+end

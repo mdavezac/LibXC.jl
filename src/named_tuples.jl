@@ -1,13 +1,13 @@
-abstract NamedTuple
+abstract type NamedTuple end
 
 """ All outputs from LDA """
-immutable AllLDA{T0, T1, T2, T3} <: NamedTuple
+struct AllLDA{T0, T1, T2, T3} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
     ∂²ϵ_∂ρ²::T2
     ∂³ϵ_∂ρ³::T3
 end
-Base.length(a::AllLDA) = 4
+Base.length(::AllLDA) = 4
 function Base.getindex(a::AllLDA, index::Integer)
     if index == 1
         a.ϵ
@@ -23,11 +23,11 @@ function Base.getindex(a::AllLDA, index::Integer)
 end
 
 """ Energy and potential from LDA """
-immutable LDAEnergyAndPotential{T0, T1} <: NamedTuple
+struct LDAEnergyAndPotential{T0, T1} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
 end
-Base.length(a::LDAEnergyAndPotential) = 2
+Base.length(::LDAEnergyAndPotential) = 2
 function Base.getindex(a::LDAEnergyAndPotential, index::Integer)
     if index == 1
         a.ϵ
@@ -39,11 +39,11 @@ function Base.getindex(a::LDAEnergyAndPotential, index::Integer)
 end
 
 """ Energy and potential from LDA """
-immutable GGAPotential{T0, T1} <: NamedTuple
+struct GGAPotential{T0, T1} <: NamedTuple
     ∂ϵ_∂ρ::T0
     ∂ϵ_∂∇ρ::T1
 end
-Base.length(a::GGAPotential) = 2
+Base.length(::GGAPotential) = 2
 function Base.getindex(a::GGAPotential, index::Integer)
     if index == 1
         a.∂ϵ_∂ρ
@@ -58,12 +58,12 @@ end
 
 Include the second derivative of the energy with respect to ρ, ∇ρ, and both ρ and ∇ρ.
 """
-immutable GGASecondDerivative{T0, T1, T2} <: NamedTuple
+struct GGASecondDerivative{T0, T1, T2} <: NamedTuple
     ∂²ϵ_∂ρ²::T0
     ∂²ϵ_∂ρ∂∇ρ::T1
     ∂²ϵ_∂∇ρ²::T2
 end
-Base.length(a::GGASecondDerivative) = 3
+Base.length(::GGASecondDerivative) = 3
 function Base.getindex(a::GGASecondDerivative, index::Integer)
     if index == 1
         a.∂²ϵ_∂ρ²
@@ -80,13 +80,13 @@ end
 
 Include the third derivative of the energy with respect to ρ, ∇ρ, and both ρ and ∇ρ.
 """
-immutable GGAThirdDerivative{T0, T1, T2, T3} <: NamedTuple
+struct GGAThirdDerivative{T0, T1, T2, T3} <: NamedTuple
     ∂³ϵ_∂ρ³::T0
     ∂³ϵ_∂ρ²∂∇ρ::T1
     ∂³ϵ_∂ρ∂∇ρ²::T3
     ∂³ϵ_∂∇ρ³::T3
 end
-Base.length(a::GGAThirdDerivative) = 4
+Base.length(::GGAThirdDerivative) = 4
 function Base.getindex(a::GGAThirdDerivative, index::Integer)
     if index == 1
         a.∂³ϵ_∂ρ³
@@ -102,12 +102,12 @@ function Base.getindex(a::GGAThirdDerivative, index::Integer)
 end
 
 """ Holds GGA energy and first derivatives """
-immutable GGAEnergyAndPotential{T0, T1, T2} <: NamedTuple
+struct GGAEnergyAndPotential{T0, T1, T2} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
     ∂ϵ_∂∇ρ::T2
 end
-Base.length(a::GGAEnergyAndPotential) = 3
+Base.length(::GGAEnergyAndPotential) = 3
 function Base.getindex(a::GGAEnergyAndPotential, index::Integer)
     if index == 1
         a.ϵ
@@ -121,7 +121,7 @@ function Base.getindex(a::GGAEnergyAndPotential, index::Integer)
 end
 
 """ All outputs from LDA """
-immutable AllGGA{T0, T1, T2, T3, T4, T5, T6, T7, T8, T9} <: NamedTuple
+struct AllGGA{T0, T1, T2, T3, T4, T5, T6, T7, T8, T9} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
     ∂ϵ_∂∇ρ::T2
@@ -133,7 +133,7 @@ immutable AllGGA{T0, T1, T2, T3, T4, T5, T6, T7, T8, T9} <: NamedTuple
     ∂³ϵ_∂ρ∂∇ρ²::T8
     ∂³ϵ_∂∇ρ³::T9
 end
-Base.length(a::AllGGA) = 10
+Base.length(::AllGGA) = 10
 function Base.getindex(a::AllGGA, index::Integer)
     if index == 1
         a.ϵ
@@ -160,7 +160,7 @@ function Base.getindex(a::AllGGA, index::Integer)
     end
 end
 
-Base.start(iter::NamedTuple) = 1
+Base.start(::NamedTuple) = 1
 Base.next(iter::NamedTuple, state::Integer) = iter[state], state + 1
 Base.done(iter::NamedTuple, state::Integer) = state > length(iter)
 
@@ -172,11 +172,11 @@ end
 
 function Base.show(io::IO, t::NamedTuple)
     print(io, "(")
-    first = true
+    isfirst = true
     for (k,v) in zip(fieldnames(t), t)
-        !first && print(io, ", ")
+        !isfirst && print(io, ", ")
         print(io, k, " = "); simplify_units(io, v)
-        first = false
+        isfirst = false
     end
     print(io, ")")
 end

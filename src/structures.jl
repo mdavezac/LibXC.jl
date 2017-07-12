@@ -1,10 +1,10 @@
-type CFuncReferenceType
+mutable struct CFuncReferenceType
     ref::Cstring
     doi::Cstring
     bibtex::Cstring
 end
 
-type CFuncInfoType{FLOAT <: CReal}
+mutable struct CFuncInfoType{FLOAT <: CReal}
     """ identifier number """
     number::Cint
     """ XC_EXCHANGE, XC_CORRELATION, XC_EXCHANGE_CORRELATION, XC_KINETIC """
@@ -68,7 +68,7 @@ type CFuncInfoType{FLOAT <: CReal}
     mmga::Ptr{Void}
 end
 
-type CFuncType{FLOAT <: CReal}
+mutable struct CFuncType{FLOAT <: CReal}
     """ all the information concerning this functional """
     info::Ptr{CFuncInfoType{FLOAT}}
     """ XC_UNPOLARIZED or XC_POLARIZED """
@@ -135,7 +135,7 @@ type CFuncType{FLOAT <: CReal}
     params::Ptr{Void}
 end
 
-type CFunctionalKey
+mutable struct CFunctionalKey
     """ Name of the functional """
     name::NTuple{256, Cchar}
     """ Key associated with the functional """

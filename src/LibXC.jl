@@ -9,23 +9,28 @@ using DocStringExtensions
 using Unitful: Quantity, @u_str
 export @u_str
 
-if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
-    include("../deps/deps.jl")
+macro lintpragma(s) end
+
+if isfile(joinpath(Pkg.dir("LibXC"),"deps","deps.jl"))
+    include(joinpath(Pkg.dir("LibXC"),"deps","deps.jl"))
 else
     error("LibXC not properly installed. Please run Pkg.build(\"LibXC\")")
 end
 
 """ Floating points LibXC might now about """
-typealias CReal Union{Cfloat, Cdouble}
+const CReal = Union{Cfloat, Cdouble}
 
 include("DFTUnits.jl")
+using .DFTUnits
 include("units.jl")
+using .Units
 
 include("structures.jl")
 include("constants.jl")
+using .Constants
 
 """ Holds citation data """
-immutable Citation
+struct Citation
     ref::String
     doi::String
     bibtex::String
@@ -36,6 +41,8 @@ Base.show(io::IO, x::Citation) = show(io, x.ref)
 
 const LIB_VERSION = let
     version = Cint[0, 0, 0]
+    @lintpragma("Ignore use of undeclared variable libxc")
+    @lintpragma("Ignore use of undeclared variable ccall")
     @eval ccall((:xc_version, $libxc), Void, (Ref{Cint}, Ref{Cint}, Ref{Cint}),
                 Ref($version), Ref($version, 2), Ref($version, 3))
     VersionNumber(version...)
@@ -45,16 +52,16 @@ end
 
 """ Functional names and keys """
 const FUNCTIONALS = let
-    keys = @eval cglobal(
+    tags = @eval cglobal(
         (:xc_functional_keys, $(LibXC.libxc)), LibXC.CFunctionalKey)
     result = Dict{Symbol, Int32}()
 
-    i, key = 1, unsafe_load(keys)
+    i, key = 1, unsafe_load(tags)
     while key.key > 0
         n = findfirst(x -> x == UInt32('\0'), key.name) - 1
         push!(result, Symbol(join(Char(key.name[u]) for u in 1:n)) => key.key)
         i += 1
-        key = unsafe_load(keys, i)
+        key = unsafe_load(tags, i)
     end
     result
 end
@@ -69,30 +76,13 @@ function libxc_functionals()
     end)
 end
 
-abstract AbstractXCFunctional
-abstract AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional
+abstract type AbstractXCFunctional end
+abstract type AbstractLibXCFunctional{T <: CReal} <: AbstractXCFunctional end
 
 """ Manages pointer to C libxc funtional data """
 type XCFunctional{T <: CReal} <: AbstractLibXCFunctional{T}
     c_ptr::Ptr{CFuncType{T}}
-    XCFunctional(ptr::Ptr{CFuncType{T}}) = new(ptr)
-end
-
-function Base.showcompact(io::IO, func::AbstractLibXCFunctional)
-    symb = iFUNCTIONALS[libkey(func)]
-    print(io, "$(typeof(func))(:$symb, $(spin(func)))")
-end
-function Base.show(io::IO, func::AbstractLibXCFunctional)
-    showcompact(io, func)
-    println(io,
-        "\n  - description: $(description(func))",
-        "\n  - kind: $(kind(func))",
-        "\n  - family: $(family(func))",
-        "\n  - spin: $(spin(func))",
-        "\n  - citations:")
-    for cit in citations(func)
-        println(io, "      * $(cit.ref)")
-    end
+    XCFunctional{T}(ptr::Ptr{CFuncType{T}}) where T <: CReal = new(ptr)
 end
 
 """ Creates a functional from it's name and polarization
@@ -208,14 +198,16 @@ function output_size(polarized::Bool, dims::NTuple, factor::Integer)
     end
 end
 function output_size(func::AbstractLibXCFunctional, ρ::DenseArray, factor::Integer)
-    output_size(spin(func), size(ρ), factor)
+    output_size(spin(func), Base.size(ρ), factor)
 end
 function output_size(s::Constants.SPIN, dims::NTuple, factor::Integer)
     output_size(s == Constants.polarized, dims, factor)
 end
 
 
-include("checks.jl")
+include("Checks.jl")
+using .Checks: *
+
 include("named_tuples.jl")
 include("lda.jl")
 include("gga.jl")
@@ -253,6 +245,24 @@ function to_markdown(name)
     push!(result.content, list)
     result
 end
+
+function Base.showcompact(io::IO, func::AbstractLibXCFunctional)
+    symb = iFUNCTIONALS[libkey(func)]
+    print(io, "$(typeof(func))(:$symb, $(LibXC.spin(func)))")
+end
+function Base.show(io::IO, func::AbstractLibXCFunctional)
+    showcompact(io, func)
+    println(io,
+        "\n  - description: $(description(func))",
+        "\n  - kind: $(kind(func))",
+        "\n  - family: $(family(func))",
+        "\n  - spin: $(spin(func))",
+        "\n  - citations:")
+    for cit in citations(func)
+        println(io, "      * $(cit.ref)")
+    end
+end
+
 
 
 end # module

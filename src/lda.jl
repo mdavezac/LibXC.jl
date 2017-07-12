@@ -1,3 +1,51 @@
+# Mostly so linting doesn't throw false positives when processing this file alone
+@lintpragma("Ignore use of undeclared variable ccall")
+using LibXC: Constants, CFuncType, libxc, spin, AllLDA, LDAEnergyAndPotential
+using LibXC: output_size, flags
+using LibXC.Checks: @check_functional, @check_availability, @check_size
+
+"""
+    $(SIGNATURES)
+
+LDA energy and first derivative
+"""
+function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
+                               ϵ::DenseArray{Cdouble}, ∂ϵ_∂ρ::DenseArray{Cdouble})
+    @check_functional func lda
+    @check_availability func exc
+    @check_availability func vxc
+    @check_size func ρ ϵ 1
+    @check_size func ρ ∂ϵ_∂ρ 2
+
+    ccall((:xc_lda_exc_vxc, libxc), Void,
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, ϵ, ∂ϵ_∂ρ)
+
+    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
+end
+
+function energy_and_potential!(func::AbstractLibXCFunctional,
+                               ρ::DenseArray{Units.ρ{Cdouble}},
+                               ϵ::DenseArray{Units.ϵ{Cdouble}},
+                               ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}})
+    energy_and_potential!(func, reinterpret(Cdouble, ρ),
+                          reinterpret(Cdouble, ϵ), reinterpret(Cdouble, ∂ϵ_∂ρ))
+    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
+end
+
+function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
+                              ρ::DenseArray{Cdouble})
+    energy_and_potential!(func, ρ,
+                          similar(ρ, eltype(ρ), output_size(func, ρ, 1)), similar(ρ))
+end
+function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
+                              ρ::DenseArray{Units.ρ{Cdouble}})
+    energy_and_potential!(func, ρ,
+                          similar(ρ, Units.ϵ{Cdouble}, output_size(func, ρ, 1)),
+                          similar(ρ, Units.∂ϵ_∂ρ{Cdouble}))
+end
+
+
 """
     $(SIGNATURES)
 
@@ -220,47 +268,6 @@ function lda!(func::AbstractLibXCFunctional{Cdouble},
               ρ::DenseArray{Units.ρ{Cdouble}}, ϵ::DenseArray{Units.ϵ{Cdouble}})
     AllLDA(energy!(func, ρ, ϵ), Units.∂ϵ_∂ρ{Cdouble}[],
            Units.∂²ϵ_∂ρ²{Cdouble}[], Units.∂³ϵ_∂ρ³{Cdouble}[])
-end
-
-"""
-    $(SIGNATURES)
-
-LDA energy and first derivative
-"""
-function energy_and_potential!(func::AbstractLibXCFunctional, ρ::DenseArray{Cdouble},
-                               ϵ::DenseArray{Cdouble}, ∂ϵ_∂ρ::DenseArray{Cdouble})
-    @check_functional func lda
-    @check_availability func exc
-    @check_availability func vxc
-    @check_size func ρ ϵ 1
-    @check_size func ρ ∂ϵ_∂ρ 2
-
-    ccall((:xc_lda_exc_vxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
-          func.c_ptr, length(ρ) / convert(Int64, spin(func)), ρ, ϵ, ∂ϵ_∂ρ)
-
-    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
-end
-
-function energy_and_potential!(func::AbstractLibXCFunctional,
-                               ρ::DenseArray{Units.ρ{Cdouble}},
-                               ϵ::DenseArray{Units.ϵ{Cdouble}},
-                               ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}})
-    energy_and_potential!(func, reinterpret(Cdouble, ρ),
-                          reinterpret(Cdouble, ϵ), reinterpret(Cdouble, ∂ϵ_∂ρ))
-    LDAEnergyAndPotential(ϵ, ∂ϵ_∂ρ)
-end
-
-function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
-                              ρ::DenseArray{Cdouble})
-    energy_and_potential!(func, ρ,
-                          similar(ρ, eltype(ρ), output_size(func, ρ, 1)), similar(ρ))
-end
-function energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
-                              ρ::DenseArray{Units.ρ{Cdouble}})
-    energy_and_potential!(func, ρ,
-                          similar(ρ, Units.ϵ{Cdouble}, output_size(func, ρ, 1)),
-                          similar(ρ, Units.∂ϵ_∂ρ{Cdouble}))
 end
 
 """

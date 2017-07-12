@@ -1,3 +1,5 @@
+using LibXC: XCFunctional
+
 for name ∈ [:energy, :potential,:second_energy_derivative, :third_energy_derivative, :lda,
             :energy_and_potential]
     local name! = Symbol("$(name)!")

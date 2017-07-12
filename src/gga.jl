@@ -1,3 +1,10 @@
+# Mostly so linting doesn't throw false positives when processing this file alone
+using LibXC: Constants, CFuncType, libxc, spin, output_size, flags
+using LibXC: GGAPotential, GGASecondDerivative, GGAThirdDerivative
+using LibXC: GGAEnergyAndPotential, AllGGA
+using LibXC.Checks: @check_functional, @check_availability, @check_size
+@lintpragma("Ignore use of undeclared variable ccall")
+
 """
     $(SIGNATURES)
 
@@ -313,7 +320,9 @@ function gga!{T <: DenseArray{Cdouble}}(func::AbstractLibXCFunctional{Cdouble},
     end
 end
 function gga!(func::AbstractLibXCFunctional{Cdouble},
-              ρ::DenseArray{Units.ρ{Cdouble}}, ϵ::DenseArray{Units.ϵ{Cdouble}},
+              ρ::DenseArray{Units.ρ{Cdouble}},
+              ∇ρ::DenseArray{Units.∇ρ{Cdouble}},
+              ϵ::DenseArray{Units.ϵ{Cdouble}},
               ∂ϵ_∂ρ::DenseArray{Units.∂ϵ_∂ρ{Cdouble}},
               ∂ϵ_∂∇ρ::DenseArray{Units.∂ϵ_∂∇ρ{Cdouble}},
               ∂²ϵ_∂ρ²::DenseArray{Units.∂²ϵ_∂ρ²{Cdouble}},

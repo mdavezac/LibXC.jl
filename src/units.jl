@@ -46,17 +46,30 @@ macro _dim_helper(name, units)
         end)
 end
 
+macro lintpragma(s) end
+@lintpragma("Ignore use of undeclared variable ρ")
 @_dim_helper ρ          DFTUnits.ρ
+@lintpragma("Ignore use of undeclared variable ∇ρ")
 @_dim_helper ∇ρ         DFTUnits.∇ρ
+@lintpragma("Ignore use of undeclared variable ϵ")
 @_dim_helper ϵ          DFTUnits.ϵ
+@lintpragma("Ignore use of undeclared variable ∂ϵ_∂ρ")
 @_dim_helper ∂ϵ_∂ρ      DFTUnits.∂ϵ_∂ρ
+@lintpragma("Ignore use of undeclared variable ∂ϵ_∂∇ρ")
 @_dim_helper ∂ϵ_∂∇ρ     DFTUnits.∂ϵ_∂∇ρ
+@lintpragma("Ignore use of undeclared variable ∂²ϵ_∂ρ²")
 @_dim_helper ∂²ϵ_∂ρ²    DFTUnits.∂²ϵ_∂ρ²
+@lintpragma("Ignore use of undeclared variable ∂²ϵ_∂∇ρ²")
 @_dim_helper ∂²ϵ_∂∇ρ²   DFTUnits.∂²ϵ_∂∇ρ²
+@lintpragma("Ignore use of undeclared variable ∂²ϵ_∂ρ∂∇ρ")
 @_dim_helper ∂²ϵ_∂ρ∂∇ρ  DFTUnits.∂²ϵ_∂ρ∂∇ρ
+@lintpragma("Ignore use of undeclared variable ∂³ϵ_∂ρ³")
 @_dim_helper ∂³ϵ_∂ρ³    DFTUnits.∂³ϵ_∂ρ³
+@lintpragma("Ignore use of undeclared variable ∂³ϵ_∂∇ρ³")
 @_dim_helper ∂³ϵ_∂∇ρ³   DFTUnits.∂³ϵ_∂∇ρ³
+@lintpragma("Ignore use of undeclared variable ∂³ϵ_∂ρ²∂∇ρ")
 @_dim_helper ∂³ϵ_∂ρ²∂∇ρ DFTUnits.∂³ϵ_∂ρ²∂∇ρ
+@lintpragma("Ignore use of undeclared variable ∂³ϵ_∂ρ∂∇ρ²")
 @_dim_helper ∂³ϵ_∂ρ∂∇ρ² DFTUnits.∂³ϵ_∂ρ∂∇ρ²
 
 end
