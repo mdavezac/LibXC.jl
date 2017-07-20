@@ -41,6 +41,24 @@ libxc_functionals
 The functionals can be queried for their [`kind`](@ref), [`family`](@ref),
 [`description`](@ref), [`citations`](@ref), and [`spin`](@ref).
 
+## A word about unicode symbols
+
+A number of quantities in `LibXC.jl` are commonly written using unicode symbols. This
+simplifies reading the code at the cost of making writing slightly more awkward. In the
+Julia REPL, in IJulia, and in some text editors, these symbols can be inputed using their
+latex counterparts:
+
+  |                | Symbol | Latex Name  |
+  |----------------|--------|-------------|
+  | density        | ρ      | \rho        |
+  | density units  | Ρ      | \Rho        |
+  | energy         | ϵ      | \epsilon    |
+  | energy units   | Ε      | \Epsilon    |
+  | gradient       | ∇      | \nabla      |
+  | derivative     | ∂      | \partial    |
+  | Hartree energy | Εₕ     | \Epsilon\_h |
+
+
 ## A word about input dimensionality
 
 The functionals expect input arrays ρ and ∇ρ, and (optionally) a number of output
@@ -113,7 +131,7 @@ true
 ```
 
 ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
-derivatives do not.
+derivatives do not. See the section on Unicode above.
 
 ## Using the functionals
 
