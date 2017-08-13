@@ -11,6 +11,6 @@ autotools = Autotools(libtarget="src/libxc.la", configure_options=options)
 provides(BuildProcess, autotools, libxc)
 @BinDeps.install Dict(:libxc => :libxc)
 
-if "UnitfulHartree" ∉ keys(Pkg.installed())
-    Pkg.clone("https://github.com/mdavezac/UnitfulHartree.jl.git")
+if "DFTShims" ∉ keys(Pkg.installed())
+    Pkg.clone("https://github.com/mdavezac/DFTShims.jl.git")
 end
