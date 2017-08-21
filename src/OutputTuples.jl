@@ -1,6 +1,6 @@
 module OutputTuples
 export AllLDA, LDAEnergyAndPotential, GGAPotential, GGAEnergyAndPotential,
-       GGASecondDerivative, GGAThirdDerivative, AllGGA
+       GGASecondDerivative, GGAThirdDerivative, AllGGA, LDATuple, GGATuple
 using ..Dispatch
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree

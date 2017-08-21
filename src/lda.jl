@@ -8,12 +8,11 @@ using ..Internals
 using ..Internals: CFuncType, libxc, XCFunctional
 using ..OutputTuples
 using ..Checks
-using DFTShims: is_spin_polarized
 
 using AxisArrays
 using DocStringExtensions
 
-using DFTShims: SpinCategory, SpinDegenerate, ColinearSpinFirst, Dispatch
+using DFTShims: SpinCategory, SpinDegenerate, ColinearSpinFirst, Dispatch, is_spin_polarized
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 
@@ -27,7 +26,7 @@ const FUNCTIONS = Dict(:energy => TYPES[1:1], :energy_and_potential => TYPES[1:2
                        :third_energy_derivative => TYPES[4:4], :lda => TYPES)
 const OUTPUTS = Dict(:energy => :AxisArray, :energy_and_potential => :LDAEnergyAndPotential,
                      :potential => :AxisArray, :second_energy_derivative => :AxisArray,
-                     :third_energy_derivative => :AxisArray, :lda => :AllLDA)
+                     :third_energy_derivative => :AxisArray, :lda => :LDATuple)
 const FUNCNAMES = Dict(:energy => :xc_lda_exc, :energy_and_potential => :xc_lda_exc_vxc,
                        :potential => :xc_lda_vxc, :second_energy_derivative => :xc_lda_fxc,
                        :third_energy_derivative => :xc_lda_kxc, :lda => :xc_lda)
@@ -36,16 +35,19 @@ const FUNCTYPES = Dict(:energy => :exc, :energy_and_potential => (:exc, :vxc),
                        :third_energy_derivative => :kxc, :lda => (:exc, :vxc, :fxc, :kxc))
 
 
+# Argument of functions constructed later
 _ddargument(arg::Symbol) = :($arg::DD.AxisArrays.$arg)
 _dhargument(arg::Symbol) = :($arg::DH.AxisArrays.$arg{Float64})
 _deargument(arg::Symbol) = :($arg::DenseArray{Float64})
-_conversion(arg::Symbol) = quote
-    (
-        x = similar($arg, DH.Scalars.$arg{Float64});
-        x[:] = $arg[:];
-        x
-    )
+# Conversion between AxisArray of different unit/types to something LibXC understands
+_conversion(etype::Type, array::AxisArray) = begin
+    # eltype(array) === etype && return array
+    result = similar(array, etype)
+    result .= array
+    result
 end
+_conversion(arg::Symbol) = :(_conversion(DH.Scalars.$arg{Float64}, $arg))
+# Conversion back from LibXC specific types
 _convert_back(arg::Symbol) =
     :(AxisArray(convert(typeof($arg.data), result.$arg.data), axes(result.$arg.data)))
 _convert_back(arg::Tuple{Symbol}) = (:(convert(typeof($(arg[1])), result)), )
@@ -53,12 +55,15 @@ _convert_back(args::Tuple{Symbol, Vararg{Symbol}}) = begin
     @lintpragma("Ignore unused args")
     _convert_back.(args)
 end
+# Removes AxisArray wrapper before call to no-frill function
 _convert_to_array(arg::Symbol) =
     :(reinterpret(typeof(one(eltype($arg))), convert(Array, $arg)))
+# Helps create output arrays in unbangued functions (e.g. when calling lda! from lda)
 _similar(arg::Symbol) = begin
     @lintpragma("Ignore unused arg")
     :(similar(DH.Scalars.$arg{Float64}, ρ))
 end
+# Inserts assertions to check correctness of input data during calls
 _check_spin(b::Symbol, a::Symbol) = begin
     msg = "Spin of $a and $b do not match"
     :(SpinCategory($a) == SpinCategory($b) || throw(ArgumentError($msg)))
@@ -121,7 +126,7 @@ for (func, outputs) in FUNCTIONS
             @lintpragma("Ignore use of undeclared variable ρ")
             @lintpragma("Ignore unused u")
             ccall(($(QuoteNode(FUNCNAMES[func])), $libxc), Void,
-                  (Ptr{CFuncType}, Cint, $([:(Ptr{Cdouble}) for u in allargs]...)),
+                  (Ptr{CFuncType}, Cint, $([:(Ptr{Float64}) for u in allargs]...)),
                   func.c_ptr, length(ρ) / (spin(func) == Constants.polarized ? 2: 1),
                   ρ, $(outputs...))
             $outputs
@@ -148,7 +153,7 @@ end
 
 Computes the energy and all available derivatives for the given functional
 """
-function lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DH.AxisArrays.ρ{Cdouble})
+lda(func::AbstractLibXCFunctional{Float64}, ρ::DH.AxisArrays.ρ{Float64}) = begin
     family(func) ≠ Constants.lda && throw(ArgumentError("input function is not LDA"))
 
     const f = flags(func)

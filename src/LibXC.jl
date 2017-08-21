@@ -10,6 +10,10 @@ using Unitful: Quantity, @u_str
 using DFTShims
 export @u_str
 
+if !(Cdouble <: Float64)
+    error("No idea what happens if Cdouble ≠ Float64")
+end
+
 include("constants.jl")
 using .Constants
 
