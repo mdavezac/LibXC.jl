@@ -1,3 +1,14 @@
+module OutputTuples
+export AllLDA, LDAEnergyAndPotential, GGAPotential, GGAEnergyAndPotential,
+       GGASecondDerivative, GGAThirdDerivative, AllGGA
+using ..Dispatch
+const DD = Dispatch.Dimensions
+const DH = Dispatch.Hartree
+using Base.Iterators: zip
+using Unitful
+
+macro lintpragma(s) end
+
 abstract type NamedTuple end
 
 """ All outputs from LDA """
@@ -7,170 +18,75 @@ struct AllLDA{T0, T1, T2, T3} <: NamedTuple
     ∂²ϵ_∂ρ²::T2
     ∂³ϵ_∂ρ³::T3
 end
-Base.length(::AllLDA) = 4
-function Base.getindex(a::AllLDA, index::Integer)
-    if index == 1
-        a.ϵ
-    elseif index == 2
-        a.∂ϵ_∂ρ
-    elseif index == 3
-        a.∂²ϵ_∂ρ²
-    elseif index == 4
-        a.∂³ϵ_∂ρ³
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
-end
 
 """ Energy and potential from LDA """
 struct LDAEnergyAndPotential{T0, T1} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
 end
-Base.length(::LDAEnergyAndPotential) = 2
-function Base.getindex(a::LDAEnergyAndPotential, index::Integer)
-    if index == 1
-        a.ϵ
-    elseif index == 2
-        a.∂ϵ_∂ρ
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
-end
 
 """ Energy and potential from LDA """
 struct GGAPotential{T0, T1} <: NamedTuple
     ∂ϵ_∂ρ::T0
-    ∂ϵ_∂∇ρ::T1
-end
-Base.length(::GGAPotential) = 2
-function Base.getindex(a::GGAPotential, index::Integer)
-    if index == 1
-        a.∂ϵ_∂ρ
-    elseif index == 2
-        a.∂ϵ_∂∇ρ
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
+    ∂ϵ_∂σ::T1
 end
 
 """ Second derivative from GGA
 
-Include the second derivative of the energy with respect to ρ, ∇ρ, and both ρ and ∇ρ.
+Include the second derivative of the energy with respect to ρ, σ, and both ρ and σ.
 """
 struct GGASecondDerivative{T0, T1, T2} <: NamedTuple
     ∂²ϵ_∂ρ²::T0
-    ∂²ϵ_∂ρ∂∇ρ::T1
-    ∂²ϵ_∂∇ρ²::T2
-end
-Base.length(::GGASecondDerivative) = 3
-function Base.getindex(a::GGASecondDerivative, index::Integer)
-    if index == 1
-        a.∂²ϵ_∂ρ²
-    elseif index == 2
-        a.∂²ϵ_∂ρ∂∇ρ
-    elseif index == 3
-        a.∂²ϵ_∂∇ρ²
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
+    ∂²ϵ_∂ρ∂σ::T1
+    ∂²ϵ_∂σ²::T2
 end
 
 """ Third derivative from GGA
 
-Include the third derivative of the energy with respect to ρ, ∇ρ, and both ρ and ∇ρ.
+Include the third derivative of the energy with respect to ρ, σ, and both ρ and σ.
 """
 struct GGAThirdDerivative{T0, T1, T2, T3} <: NamedTuple
     ∂³ϵ_∂ρ³::T0
-    ∂³ϵ_∂ρ²∂∇ρ::T1
-    ∂³ϵ_∂ρ∂∇ρ²::T3
-    ∂³ϵ_∂∇ρ³::T3
-end
-Base.length(::GGAThirdDerivative) = 4
-function Base.getindex(a::GGAThirdDerivative, index::Integer)
-    if index == 1
-        a.∂³ϵ_∂ρ³
-    elseif index == 2
-        a.∂³ϵ_∂ρ²∂∇ρ
-    elseif index == 3
-        a.∂³ϵ_∂ρ∂∇ρ²
-    elseif index == 3
-        a.∂³ϵ_∂∇ρ³
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
+    ∂³ϵ_∂ρ²∂σ::T1
+    ∂³ϵ_∂ρ∂σ²::T3
+    ∂³ϵ_∂σ³::T3
 end
 
 """ Holds GGA energy and first derivatives """
 struct GGAEnergyAndPotential{T0, T1, T2} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
-    ∂ϵ_∂∇ρ::T2
-end
-Base.length(::GGAEnergyAndPotential) = 3
-function Base.getindex(a::GGAEnergyAndPotential, index::Integer)
-    if index == 1
-        a.ϵ
-    elseif index == 2
-        a.∂ϵ_∂ρ
-    elseif index == 3
-        a.∂ϵ_∂∇ρ
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
+    ∂ϵ_∂σ::T2
 end
 
 """ All outputs from LDA """
 struct AllGGA{T0, T1, T2, T3, T4, T5, T6, T7, T8, T9} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
-    ∂ϵ_∂∇ρ::T2
+    ∂ϵ_∂σ::T2
     ∂²ϵ_∂ρ²::T3
-    ∂²ϵ_∂ρ∂∇ρ::T4
-    ∂²ϵ_∂∇ρ²::T5
+    ∂²ϵ_∂ρ∂σ::T4
+    ∂²ϵ_∂σ²::T5
     ∂³ϵ_∂ρ³::T6
-    ∂³ϵ_∂ρ²∂∇ρ::T7
-    ∂³ϵ_∂ρ∂∇ρ²::T8
-    ∂³ϵ_∂∇ρ³::T9
-end
-Base.length(::AllGGA) = 10
-function Base.getindex(a::AllGGA, index::Integer)
-    if index == 1
-        a.ϵ
-    elseif index == 2
-        a.∂ϵ_∂ρ
-    elseif index == 3
-        a.∂ϵ_∂∇ρ
-    elseif index == 4
-        a.∂²ϵ_∂ρ²
-    elseif index == 5
-        a.∂²ϵ_∂ρ∂∇ρ
-    elseif index == 6
-        a.∂²ϵ_∂∇ρ²
-    elseif index == 7
-        a.∂³ϵ_∂ρ³
-    elseif index == 8
-        a.∂³ϵ_∂ρ²∂∇ρ
-    elseif index == 9
-        a.∂³ϵ_∂ρ∂∇ρ²
-    elseif index == 10
-        a.∂³ϵ_∂∇ρ³
-    else
-        throw(BoundsError("Index $index is out of bounds"))
-    end
+    ∂³ϵ_∂ρ²∂σ::T7
+    ∂³ϵ_∂ρ∂σ²::T8
+    ∂³ϵ_∂σ³::T9
 end
 
+Base.length(a::NamedTuple) = length(fieldnames(typeof(a)))
+Base.getindex(a::NamedTuple, index::Integer) =
+    getfield(a, fieldname(typeof(a), index))
 Base.start(::NamedTuple) = 1
 Base.next(iter::NamedTuple, state::Integer) = iter[state], state + 1
 Base.done(iter::NamedTuple, state::Integer) = state > length(iter)
 
 simplify_units(io::IO, a::Any) = show(io, a)
-function simplify_units{T, D, U}(io::IO, a::AbstractArray{Quantity{T, D, U}})
+simplify_units{T, D, U}(io::IO, a::AbstractArray{Quantity{T, D, U}}) = begin
     print(io, reinterpret(T, a))
     print(io, "u\"$(U())\"")
 end
 
-function Base.show(io::IO, t::NamedTuple)
+Base.show(io::IO, t::NamedTuple) = begin
     print(io, "(")
     isfirst = true
     for (k,v) in zip(fieldnames(t), t)
@@ -179,4 +95,25 @@ function Base.show(io::IO, t::NamedTuple)
         isfirst = false
     end
     print(io, ")")
+end
+
+for (cons, name) in (:AllLDA => :LDATuple, :AllGGA => :GGATuple)
+    @eval begin
+        $name(args::Vararg{DD.AxisArrays.All}) = begin
+            @lintpragma("Ignore unused i")
+            concretize = i -> i{Int64}
+            fielddims = dimension.(concretize.(getfield.(DH.Scalars, fieldnames($cons))))
+
+            reordered = Any[nothing for i in 1:length(fieldnames($cons))]
+            any(reordered .== 0) && throw("Argument with unexpected Unitful dimension")
+            for arg in args
+                j = findfirst(fielddims, dimension(eltype(arg)))
+                j == 0 && throw("Argument with unexpected Unitful dimension")
+                reordered[j] = arg
+            end
+            $cons{typeof.(reordered)...}(reordered...)
+        end
+    end
+end
+
 end

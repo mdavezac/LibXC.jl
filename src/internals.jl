@@ -1,6 +1,6 @@
 module Internals
 export description, kind, family, flags, citations, spin, libxc_functionals,
-       LIB_VERSION, FUNCTIONALS, XCFunctional
+       LIB_VERSION, FUNCTIONALS, XCFunctional, AbstractLibXCFunctional, AbstractXCFunctional
 using ..Constants
 using DFTShims: SpinDegenerate, ColinearSpin
 

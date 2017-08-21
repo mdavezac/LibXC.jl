@@ -3,6 +3,12 @@ using LibXC
 using Base.Test
 using Unitful
 using DataFrames: DataFrame
+using DFTShims
+
+const DHA = Dispatch.Hartree.Scalars
+
+include("fixtures.jl")
+using .Fixtures
 
 @testset "> Internal API" begin
     @test LibXC.LIB_VERSION == v"3.0.0"
@@ -14,63 +20,14 @@ end
     include("internals.jl")
 end
 
-# function input_data(name::String)
-#     data_file = joinpath(dirname(Base.source_path()), "data", name)
-#
-#     input = (map(x -> parse(Float64, x), split(v))
-#              for v in readlines(data_file)[2:end])
-#     input = transpose(hcat(input...))
-#     input = DataFrame(Any[input[:, i] for i in 1:size(input, 2)],
-#                       [:ρ_a, :ρ_b, :∇ρ_aa, :∇ρ_ab, :∇ρ_bb, :δ_a, :δ_b, :τ_a, :τ_b])
-# end
-#
-# function expected_data(name::String)
-#     data_file = joinpath(dirname(Base.source_path()), "data", name)
-#     expected = (map(x -> parse(Float64, x), split(v))
-#                 for v in readlines(data_file)[3:end])
-#     expected = transpose(hcat(expected...))
-#     if size(expected, 2) == 3
-#         DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 3])],
-#                   [:ε, :v, :δv])
-#     elseif size(expected, 2) == 6
-#         DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 4]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 5]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 6])],
-#                   [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
-#     elseif size(expected, 2) > 6
-#         DataFrame(Any[reinterpret(LibXC.Units.ϵ{Cdouble}, expected[:, 1]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂∇ρ{Cdouble}, expected[:, 4]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂∇ρ{Cdouble}, expected[:, 5]),
-#                       reinterpret(LibXC.Units.∂ϵ_∂∇ρ{Cdouble}, expected[:, 6]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 7]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 8]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ²{Cdouble}, expected[:, 9]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 10]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 11]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 12]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 13]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 14]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂∇ρ²{Cdouble}, expected[:, 15]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 16]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 17]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 18]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 19]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 20]),
-#                       reinterpret(LibXC.Units.∂²ϵ_∂ρ∂∇ρ{Cdouble}, expected[:, 21])],
-#                    [:ε, :vrho_a, :vrho_b, :vsigma_aa, :vsigma_ab, :vsigma_bb, :v2rho_aa,
-#                     :v2rho_ab, :v2rho_bb, :v2sigma2_aa_aa, :v2sigma2_aa_ab, :v2sigma2_aa_bb,
-#                     :v2sigma2_ab_ab, :v2sigma2_ab_bb, :v2sigma2_bb_bb, :v2rho_asigma_aa,
-#                     :v2rho_asigma_ab, :v2rho_asigma_bb, :v2rho_bsigma_aa, :v2rho_bsigma_ab,
-#                     :v2rho_bsigma_bb])
-#     end
-# end
+@testset "> Output tuples" begin
+    include("OutputTuples.jl")
+end
+
+@testset "> LDA" begin
+    include("lda.jl")
+end
+
 #
 # @testset "> Array unit conversion"  begin
 #     with_units = [1, 2, 4]u"m"

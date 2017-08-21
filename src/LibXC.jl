@@ -16,11 +16,28 @@ using .Constants
 include("internals.jl")
 using .Internals
 
-# include("Checks.jl")
-# using .Checks: *
+include("Checks.jl")
+using .Checks
 
-# include("named_tuples.jl")
-# include("lda.jl")
+include("named_tuples.jl")
+using .OutputTuples
+
+function lda end
+function lda! end
+function gga end
+function gga! end
+function energy end
+function energy! end
+function potential end
+function potential! end
+function energy_and_potential! end
+function energy_and_potential end
+function second_energy_derivative end
+function second_energy_derivative! end
+function third_energy_derivative end
+function third_energy_derivative! end
+
+include("lda.jl")
 # include("gga.jl")
 # include("overloads.jl")
 end # module
