@@ -19,7 +19,7 @@ using .Internals
 include("Checks.jl")
 using .Checks
 
-include("named_tuples.jl")
+include("OutputTuples.jl")
 using .OutputTuples
 
 function lda end
