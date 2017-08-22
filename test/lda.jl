@@ -29,22 +29,22 @@ input = input_data("BrOH")
     @test ∂²ϵ_∂ρ² ≈ expected[:δv]
 end
 
-# @testset ">> Polarized" begin
-#     expected = expected_data("lda_x.BrOH.pol.dat")
-#
-#     ρs = reinterpret(DHA.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
-#     @test energy(:lda_x, ρs) ≈ expected[:ε]
-#     @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
-#     δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
-#     @test second_energy_derivative(:lda_x, ρs) ≈ δv
-#
-#     func = XCFunctional(:lda_x, true)
-#     ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρs)
-#     @test ϵ ≈ expected[:ε]
-#     @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
-#
-#     ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρs)
-#     @test ϵ ≈ expected[:ε]
-#     @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
-#     @test ∂²ϵ_∂ρ² ≈ δv
-# end
+@testset ">> Polarized" begin
+    expected = expected_data("lda_x.BrOH.pol.dat")
+    ρs = withspin(DHA.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
+
+    @test energy(:lda_x, ρs) ≈ expected[:ε]
+    @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
+    δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
+    @test second_energy_derivative(:lda_x, ρs) ≈ δv
+
+    func = XCFunctional(:lda_x, true)
+    ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρs)
+    @test ϵ ≈ expected[:ε]
+    @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
+
+    ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρs)
+    @test ϵ ≈ expected[:ε]
+    @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
+    @test ∂²ϵ_∂ρ² ≈ δv
+end

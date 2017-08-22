@@ -12,7 +12,8 @@ using ..Checks
 using AxisArrays
 using DocStringExtensions
 
-using DFTShims: SpinCategory, SpinDegenerate, ColinearSpinFirst, Dispatch, is_spin_polarized
+using DFTShims: SpinCategory, SpinDegenerate, ColinearSpinFirst, Dispatch,
+                is_spin_polarized, components
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 
@@ -41,7 +42,7 @@ _dhargument(arg::Symbol) = :($arg::DH.AxisArrays.$arg{Float64})
 _deargument(arg::Symbol) = :($arg::DenseArray{Float64})
 # Conversion between AxisArray of different unit/types to something LibXC understands
 _conversion(etype::Type, array::AxisArray) = begin
-    # eltype(array) === etype && return array
+    eltype(array) === etype && return array
     result = similar(array, etype)
     result .= array
     result
@@ -49,8 +50,9 @@ end
 _conversion(arg::Symbol) = :(_conversion(DH.Scalars.$arg{Float64}, $arg))
 # Conversion back from LibXC specific types
 _convert_back(arg::Symbol) =
-    :(AxisArray(convert(typeof($arg.data), result.$arg.data), axes(result.$arg.data)))
-_convert_back(arg::Tuple{Symbol}) = (:(convert(typeof($(arg[1])), result)), )
+    :(AxisArray(convert(typeof($arg.data), result.$arg.data), axes($arg)))
+_convert_back(arg::Tuple{Symbol}) =
+    (:(AxisArray(convert(typeof($(arg[1]).data), result.data), axes($(arg[1])))), )
 _convert_back(args::Tuple{Symbol, Vararg{Symbol}}) = begin
     @lintpragma("Ignore unused args")
     _convert_back.(args)
@@ -76,10 +78,14 @@ _check_axes_spin(b::Symbol) = begin
     msg = "Axes of ρ and $b do not match"
     spinmsg = "First axis of $b is not spin"
     spinerror = "Axis values of spin axis of $b are incorrect"
+    comps = gensym("comps")
     quote
-        axisnames($b, 1) == :spin || throw(ArgumentError($spinmsg))
-        axesvalues($b, 1) == components(eltype($b)) || throw(ArgumentError($spinerror))
-        all(axes(ρ)[2:end] .== axes($b)[3:end]) || throw(ArgumentError($msg))
+        $comps = components(eltype($b), ColinearSpinFirst())
+        if length($comps) > 1
+            axisnames($b)[1] ≠ :spin && throw(ArgumentError($spinmsg))
+            axisvalues($b)[1] ≠ $comps && throw(ArgumentError($spinerror))
+            all(axes(ρ)[2:end] .== axes($b)[2:end]) || throw(ArgumentError($msg))
+        end
     end
 end
 
@@ -115,7 +121,7 @@ for (func, outputs) in FUNCTIONS
                $(_dhargument.(allargs)...)) = begin
             $(_check_axes_spin.(allargs)...)
             $(_check_functional(:func))
-            $(_check_availability.(:func, FUNCTYPES[func]))
+            $(_check_availability.(FUNCTYPES[func], :func))
 
             $func!(func, $(_convert_to_array.(allargs)...))
 

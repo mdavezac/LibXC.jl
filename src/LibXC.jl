@@ -10,7 +10,7 @@ using Unitful: Quantity, @u_str
 using DFTShims
 export @u_str
 
-if !(Cdouble <: Float64)
+if Cdouble !== Float64
     error("No idea what happens if Cdouble ≠ Float64")
 end
 
@@ -42,6 +42,6 @@ function third_energy_derivative end
 function third_energy_derivative! end
 
 include("lda.jl")
-# include("gga.jl")
+include("gga.jl")
 # include("overloads.jl")
 end # module

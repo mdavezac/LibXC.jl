@@ -32,12 +32,12 @@ expected_data(name::String) = begin
                       nospin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 3])],
                   [:ε, :v, :δv])
     elseif size(expected, 2) == 6
-        DataFrame(Any[withspin(DHS.ϵ{Cdouble}, expected[:, 1]),
-                      withspin(DHS.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
-                      withspin(DHS.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
-                      withspin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 4]),
-                      withspin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 5]),
-                      withspin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 6])],
+        DataFrame(Any[nospin(DHS.ϵ{Cdouble}, expected[:, 1]),
+                      nospin(DHS.∂ϵ_∂ρ{Cdouble}, expected[:, 2]),
+                      nospin(DHS.∂ϵ_∂ρ{Cdouble}, expected[:, 3]),
+                      nospin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 4]),
+                      nospin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 5]),
+                      nospin(DHS.∂²ϵ_∂ρ²{Cdouble}, expected[:, 6])],
                   [:ε, :v_a, :v_b, :δv_aa, :δv_ab, :δv_bb])
     elseif size(expected, 2) > 6
         DataFrame(Any[nospin(DHS.ϵ{Cdouble}, expected[:, 1]),
