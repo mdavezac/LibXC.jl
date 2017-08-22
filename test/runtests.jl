@@ -28,6 +28,11 @@ end
     include("lda.jl")
 end
 
+@testset "> GGA" begin
+    include("gga.jl")
+end
+
+
 #
 # @testset "> Array unit conversion"  begin
 #     with_units = [1, 2, 4]u"m"

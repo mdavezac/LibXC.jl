@@ -90,7 +90,7 @@ _check_axes_spin(b::Symbol) = begin
 end
 
 _check_functional(functype::Symbol) = begin
-    msg = "Incorrect number of arguments for LDA functionals"
+    msg = "Functional is LDA, but input array do not correspond"
     :(family($functype) == Constants.lda || throw(ArgumentError($msg)))
 end
 _check_availability(out::Symbol, name::Symbol) = begin
