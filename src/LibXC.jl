@@ -41,7 +41,11 @@ function second_energy_derivative! end
 function third_energy_derivative end
 function third_energy_derivative! end
 
+include("FunctionalMacros.jl")
+using .FunctionalMacros
 include("lda.jl")
+using .LDA
 include("gga.jl")
+using .GGA
 # include("overloads.jl")
 end # module
