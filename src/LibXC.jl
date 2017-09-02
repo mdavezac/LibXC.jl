@@ -47,5 +47,4 @@ include("lda.jl")
 using .LDA
 include("gga.jl")
 using .GGA
-# include("overloads.jl")
 end # module

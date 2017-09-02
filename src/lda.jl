@@ -9,7 +9,7 @@ using ..OutputTuples
 using ..Constants
 using ..FunctionalMacros: @_all_wrapper_functionals, @_wrapper_functionals
 
-using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components
+using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, SpinDegenerate
 const DH = Dispatch.Hartree
 const DD = Dispatch.Hartree
 
@@ -20,7 +20,7 @@ const DD = Dispatch.Hartree
 @_wrapper_functionals second_energy_derivative lda xc_lda_fxc AxisArray ∂²ϵ_∂ρ²
 @_wrapper_functionals third_energy_derivative lda xc_lda_kxc AxisArray ∂³ϵ_∂ρ³
 @_wrapper_functionals lda lda xc_lda LDATuple ϵ ∂ϵ_∂ρ ∂²ϵ_∂ρ² ∂³ϵ_∂ρ³
-@_all_wrapper_functionals 4 lda xc_lda LDATuple ϵ ∂ϵ_∂ρ ∂²ϵ_∂ρ² 
+@_all_wrapper_functionals 4 lda xc_lda LDATuple ϵ ∂ϵ_∂ρ ∂²ϵ_∂ρ²
 @_all_wrapper_functionals 4 lda xc_lda LDATuple ϵ ∂ϵ_∂ρ
 @_all_wrapper_functionals 4 lda xc_lda LDATuple ϵ
 
@@ -30,21 +30,21 @@ lda(func::AbstractLibXCFunctional{Float64}, ρ::DD.AxisArrays.ρ{Float64}) = beg
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, ρ),
+             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
              similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
              similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ),
              similar(DH.Scalars.∂³ϵ_∂ρ³{Float64}, ρ))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, ρ),
+             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
              similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
              similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, ρ),
+             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
              similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ))
     elseif Constants.exc ∈ f
-        lda!(func, ρ, similar(DH.Scalars.ϵ{Float64}, ρ))
+        lda!(func, ρ, similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ))
     else
         throw(ArgumentError("Not sure what this functional can do"))
     end

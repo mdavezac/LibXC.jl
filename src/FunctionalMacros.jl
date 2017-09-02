@@ -9,7 +9,8 @@ using ..OutputTuples
 
 using AxisArrays
 
-using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components
+using DFTShims: ColinearSpinFirst, SpinDegenerate, Dispatch, is_spin_polarized, components, 
+                SpinCategory
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 
@@ -35,6 +36,50 @@ _requested_outputs(o::Vararg{DD.AxisArrays.All}) = begin
     unique(result)
 end
 
+"""
+Checks ρ and other array are compatible
+
+Note that the energy ϵ is not spin-polarized, whereas the potential is. Both share the same
+physical units. This means we have to make a special case of ϵ.
+"""
+_valid_array(ρ::DD.AxisArrays.ρ, other::DD.AxisArrays.All, name::Symbol) = begin
+    if name ≠ :ϵ
+        _valid_array(SpinCategory(ρ), ρ, other, name)
+    else
+        expected = is_spin_polarized(ρ) ? size(ρ)[2:end]: size(ρ)
+        expected ≠ size(other) && throw(ArgumentError("Sizes of ρ and ϵ do not match"))
+    end
+end
+_valid_array(::SpinDegenerate, ρ::DD.AxisArrays.ρ,
+             other::DD.AxisArrays.All, name::Symbol) = begin
+    if is_spin_polarized(other)
+        throw(ArgumentError("ρ is spin polarized, but $name is not"))
+    end
+    if size(ρ) ≠ size(other)
+        throw(ArgumentError("Dimensions of ρ and $name do not match"))
+    end
+end
+_valid_array(::ColinearSpinFirst, ρ::DD.AxisArrays.ρ,
+             other::DD.AxisArrays.All, name::Symbol) = begin
+    if !is_spin_polarized(other)
+        throw(ArgumentError("ρ is not spin polarized, but $name is"))
+    end
+    comps = components(eltype(other), ColinearSpinFirst())
+    if axisnames(other)[1] ≠ :spin
+        msg = "First axis of $name is not spin"
+        throw(ArgumentError(msg))
+    end
+    if axisvalues(other)[1] ≠ comps
+        msg = "Axis values of spin axis of $name are incorrect"
+        throw(ArgumentError(msg))
+    end
+    if axes(ρ)[2:end] ≠ axes(other)[2:end]
+        msg = "Axes of ρ and $name do not match"
+        throw(ArgumentError(msg))
+    end
+end
+
+
 """ Constructs mutating functions taking AxisArray arguments """
 _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol,
                               outputs::Tuple{Symbol, Vararg{Symbol}}) = begin
@@ -57,27 +102,9 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
     # mutating function names
     name! = Symbol(name, :!)
     # input sanity checks
-    arg_checks = x -> begin 
-        msg = "Axes of ρ and $x do not match"
-        spinmsg = "First axis of $x is not spin"
-        spinerror = "Axis values of spin axis of $x are incorrect"
-        comps = gensym("comps")
-        quote
-            if is_spin_polarized(ρ)
-                let comps = components(eltype($x), ColinearSpinFirst())
-                    if length(comps) > 1
-                        axisnames($x)[1] ≠ :spin && throw(ArgumentError($spinmsg))
-                        axisvalues($x)[1] ≠ comps && throw(ArgumentError($spinerror))
-                        axes(ρ)[2:end] == axes($x)[2:end] || throw(ArgumentError($msg))
-                    end
-                end
-            elseif axes(ρ) ≠ axes($x)
-                throw(ArgumentError($msg))
-            end
-        end
-    end
+    arg_checks = x -> :(_valid_array(ρ, $x, $(QuoteNode(x))))
     # converts to type understood by C LibXC
-    ctypes = (x -> :(reinterpret(typeof(one(eltype($x))), convert(Array, $x)))).(allargs)
+    ctypes = x -> :(reinterpret(typeof(one(eltype($x))), convert(Array, $x)))
 
     quote
         $(esc(name!))(func::AbstractLibXCFunctional, $(ddargs...)) = begin
@@ -94,7 +121,7 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
                 throw(ArgumentError("This functional does not implement all of $reqout"))
             end
 
-            $(esc(name!))(func, $(ctypes...))
+            $(esc(name!))(func, $(ctypes.(allargs)...))
 
             $(esc(output_type))($(outputs...))
         end
@@ -105,18 +132,23 @@ end
 _nonmutating_wrapper_functionals(name::Symbol, dfttype::Symbol,
                                  outputs::Tuple{Symbol, Vararg{Symbol}}) = begin
     @lintpragma("Ignore unused outputs")
-    @lintpragma("Ignore unused x")
-   
+
     name! = Symbol(name, :!)
     inputs = dfttype == :lda ? (:ρ, ) : (:ρ, :σ)
-    args = (x -> :($x::DD.AxisArrays.$x)).(inputs)
-    similars = (x -> :(similar(DH.Scalars.$x{Float64}, ρ))).(outputs)
+    args = x -> :($x::DD.AxisArrays.$x)
+    similars = x -> begin
+        if x == :ϵ
+            :(similar(DH.Scalars.$x{Float64}, SpinDegenerate(), ρ))
+        else
+            :(similar(DH.Scalars.$x{Float64}, ρ))
+        end
+    end
 
     quote
-        $(esc(name))(func::AbstractLibXCFunctional, $(args...)) =
-            $(esc(name!))(func, $(inputs...), $(similars...))
+        $(esc(name))(func::AbstractLibXCFunctional, $(args.(inputs)...)) =
+            $(esc(name!))(func, $(inputs...), $(similars.(outputs)...))
 
-        $(esc(name))(name::Symbol, $(args...)) =
+        $(esc(name))(name::Symbol, $(args.(inputs)...)) =
             $(esc(name))(XCFunctional(name, is_spin_polarized(ρ)), $(inputs...))
     end
 end
