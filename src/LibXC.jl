@@ -20,9 +20,6 @@ using .Constants
 include("internals.jl")
 using .Internals
 
-include("Checks.jl")
-using .Checks
-
 include("OutputTuples.jl")
 using .OutputTuples
 
