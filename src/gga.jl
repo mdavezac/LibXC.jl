@@ -9,7 +9,8 @@ using ..OutputTuples
 using ..Constants
 using ..FunctionalMacros: @_all_wrapper_functionals, @_wrapper_functionals
 
-using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, SpinDegenerate
+using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, SpinDegenerate,
+                SpinCategory
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 
@@ -33,35 +34,36 @@ macro lintpragma(s) end
 gga(func::AbstractLibXCFunctional{Float64}, ρ::DD.AxisArrays.ρ{Float64},
     σ::DD.AxisArrays.σ{Float64}) = begin
     family(func) ≠ Constants.gga && throw(ArgumentError("input function is not LDA"))
+    Spin = SpinCategory(ρ)
 
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
         gga!(func, ρ, σ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
-             similar(DH.Scalars.∂ϵ_∂σ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ∂σ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂σ²{Float64}, ρ),
-             similar(DH.Scalars.∂³ϵ_∂ρ³{Float64}, ρ),
-             similar(DH.Scalars.∂³ϵ_∂ρ²∂σ{Float64}, ρ),
-             similar(DH.Scalars.∂³ϵ_∂ρ∂σ²{Float64}, ρ),
-             similar(DH.Scalars.∂³ϵ_∂σ³{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ∂σ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂σ²{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂ρ³{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂ρ²∂σ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂ρ∂σ²{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂σ³{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
         gga!(func, ρ, σ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
-             similar(DH.Scalars.∂ϵ_∂σ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ∂σ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂σ²{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ∂σ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂σ²{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
         gga!(func, ρ, σ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
-             similar(DH.Scalars.∂ϵ_∂σ{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin))
     elseif Constants.exc ∈ f
-        gga!(func, ρ, σ, similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ))
+        gga!(func, ρ, σ, similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()))
     else
         throw(ArgumentError("Not sure what this functional can do"))
     end

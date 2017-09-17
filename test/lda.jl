@@ -20,8 +20,8 @@ input = input_data("BrOH")
     # checks unit and type conversion
     rho = uconvert(u"m^-3", ρ)
     with_conv = energy_and_potential(:lda_x, rho)
-    @test with_conv[1] ≈ ϵ
-    @test with_conv[2] ≈ ∂ϵ_∂ρ
+    @test with_conv[1] ≈ expected[:ε]
+    @test with_conv[2] ≈ expected[:v]
 
     ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρ)
     @test ϵ ≈ expected[:ε]

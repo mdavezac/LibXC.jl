@@ -19,6 +19,8 @@ using .Constants
 
 include("internals.jl")
 using .Internals
+DFTShims.SpinCategory(f::XCFunctional) =
+    spin(f) == Constants.polarized ? ColinearSpinFirst() : SpinDegenerate()
 
 include("OutputTuples.jl")
 using .OutputTuples
@@ -38,8 +40,13 @@ function second_energy_derivative! end
 function third_energy_derivative end
 function third_energy_derivative! end
 
+include("ArrayManips.jl")
+using .ArrayManips
+
 include("FunctionalMacros.jl")
 using .FunctionalMacros
+
+
 include("lda.jl")
 using .LDA
 include("gga.jl")

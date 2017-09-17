@@ -9,7 +9,8 @@ using ..OutputTuples
 using ..Constants
 using ..FunctionalMacros: @_all_wrapper_functionals, @_wrapper_functionals
 
-using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, SpinDegenerate
+using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, SpinDegenerate,
+                SpinCategory
 const DH = Dispatch.Hartree
 const DD = Dispatch.Hartree
 
@@ -26,25 +27,26 @@ const DD = Dispatch.Hartree
 
 lda(func::AbstractLibXCFunctional{Float64}, ρ::DD.AxisArrays.ρ{Float64}) = begin
     family(func) ≠ Constants.lda && throw(ArgumentError("input function is not LDA"))
+    Spin = SpinCategory(ρ)
 
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ),
-             similar(DH.Scalars.∂³ϵ_∂ρ³{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂ρ³{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ),
-             similar(DH.Scalars.∂²ϵ_∂ρ²{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
         lda!(func, ρ,
-             similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ),
-             similar(DH.Scalars.∂ϵ_∂ρ{Float64}, ρ))
+             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin))
     elseif Constants.exc ∈ f
-        lda!(func, ρ, similar(DH.Scalars.ϵ{Float64}, SpinDegenerate(), ρ))
+        lda!(func, ρ, similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()))
     else
         throw(ArgumentError("Not sure what this functional can do"))
     end

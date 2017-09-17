@@ -5,24 +5,18 @@ import LibXC: energy, energy!, potential, potential!, energy_and_potential,
 using ..Constants
 using ..Internals
 using ..Internals: AbstractLibXCFunctional, CFuncType, libxc
+using ..ArrayManips: from_libxc_array!, to_libxc_array, valid_array
 using ..OutputTuples 
 
 using AxisArrays
+using ArgCheck
 
 using DFTShims: ColinearSpinFirst, SpinDegenerate, Dispatch, is_spin_polarized, components, 
-                SpinCategory
+                SpinCategory, SpinAware
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 
 macro lintpragma(s) end
-
-""" Conversion between AxisArray of different unit/types to something LibXC understands """
-_conversion(etype::Type, array::AxisArray) = begin
-    eltype(array) === etype && return array
-    result = similar(array, etype)
-    result .= array
-    result
-end
 
 _requested_outputs(o::Vararg{DD.AxisArrays.All}) = begin
     @lintpragma("Ignore unused o")
@@ -36,50 +30,6 @@ _requested_outputs(o::Vararg{DD.AxisArrays.All}) = begin
     unique(result)
 end
 
-"""
-Checks ρ and other array are compatible
-
-Note that the energy ϵ is not spin-polarized, whereas the potential is. Both share the same
-physical units. This means we have to make a special case of ϵ.
-"""
-_valid_array(ρ::DD.AxisArrays.ρ, other::DD.AxisArrays.All, name::Symbol) = begin
-    if name ≠ :ϵ
-        _valid_array(SpinCategory(ρ), ρ, other, name)
-    else
-        expected = is_spin_polarized(ρ) ? size(ρ)[2:end]: size(ρ)
-        expected ≠ size(other) && throw(ArgumentError("Sizes of ρ and ϵ do not match"))
-    end
-end
-_valid_array(::SpinDegenerate, ρ::DD.AxisArrays.ρ,
-             other::DD.AxisArrays.All, name::Symbol) = begin
-    if is_spin_polarized(other)
-        throw(ArgumentError("ρ is spin polarized, but $name is not"))
-    end
-    if size(ρ) ≠ size(other)
-        throw(ArgumentError("Dimensions of ρ and $name do not match"))
-    end
-end
-_valid_array(::ColinearSpinFirst, ρ::DD.AxisArrays.ρ,
-             other::DD.AxisArrays.All, name::Symbol) = begin
-    if !is_spin_polarized(other)
-        throw(ArgumentError("ρ is not spin polarized, but $name is"))
-    end
-    comps = components(eltype(other), ColinearSpinFirst())
-    if axisnames(other)[1] ≠ :spin
-        msg = "First axis of $name is not spin"
-        throw(ArgumentError(msg))
-    end
-    if axisvalues(other)[1] ≠ comps
-        msg = "Axis values of spin axis of $name are incorrect"
-        throw(ArgumentError(msg))
-    end
-    if axes(ρ)[2:end] ≠ axes(other)[2:end]
-        msg = "Axes of ρ and $name do not match"
-        throw(ArgumentError(msg))
-    end
-end
-
-
 """ Constructs mutating functions taking AxisArray arguments """
 _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol,
                               outputs::Tuple{Symbol, Vararg{Symbol}}) = begin
@@ -87,31 +37,23 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
     allargs = dfttype == :lda ? (:ρ, outputs...): (:ρ, :σ, outputs...)
 
     # function arguments
-    ddargs = (arg -> :($arg::DD.AxisArrays.$arg)).(allargs)
-    dhargs = (arg -> :($arg::DH.AxisArrays.$arg)).(allargs)
+    axis_args = (arg -> :($arg::DD.AxisArrays.$arg)).(allargs)
+    array_args = (arg -> :($arg::DD.DenseArrays.$arg{Float64})).(allargs)
 
-    # conversion to axisarrays compatible with LibXC
-    conversions = (arg -> :(_conversion(DH.Scalars.$arg{Float64}, $arg))).(allargs)
     # converts backt to original axisarrays
-    back = if length(outputs) == 1
-        arg = outputs[1]
-        [:(AxisArray(convert(typeof($(arg).data), result.data), axes($(arg))))]
-    else
-        (x -> :(AxisArray(convert(typeof($x.data), result.$x.data), axes($x)))).(outputs)
-    end
-    # mutating function names
     name! = Symbol(name, :!)
     # input sanity checks
-    arg_checks = x -> :(_valid_array(ρ, $x, $(QuoteNode(x))))
+    arg_checks = x -> :(valid_array(ρ, $x))
+    arg_checks_array = x -> :(valid_array(ρ, $x, Spin))
     # converts to type understood by C LibXC
-    ctypes = x -> :(reinterpret(typeof(one(eltype($x))), convert(Array, $x)))
+    to_libxc_types = x -> :($(Symbol(:c, x)) = to_libxc_array(ρ, $x))
+    to_libxc_array_types = x -> :($(Symbol(:c, x)) = to_libxc_array($x))
+    to_dense_types = x -> :(reinterpret(Float64, $(Symbol(:c, x)).data))
+    to_c_types = x -> :(reinterpret(Float64, $x))
+    from_libxc_types = x -> :(from_libxc_array!($x, $(Symbol(:c, x))))
 
     quote
-        $(esc(name!))(func::AbstractLibXCFunctional, $(ddargs...)) = begin
-            result = $(esc(name!))(func, $(conversions...))
-            $(esc(output_type))($(back...))
-        end
-        $(esc(name!))(func::AbstractLibXCFunctional, $(dhargs...)) = begin
+        $(esc(name!))(func::AbstractLibXCFunctional, $(axis_args...)) = begin
             $(arg_checks.(allargs)...)
             if family(func) ≠ getfield(Constants, $(QuoteNode(dfttype)))
                 throw(ArgumentError("Incorrect functional type $($(QuoteNode(dfttype)))"))
@@ -121,9 +63,18 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
                 throw(ArgumentError("This functional does not implement all of $reqout"))
             end
 
-            $(esc(name!))(func, $(ctypes.(allargs)...))
-
+            $(to_libxc_types.(allargs)...)
+            $(esc(name!))(func, $(to_dense_types.(allargs)...))
+            $(from_libxc_types.(outputs)...)
             $(esc(output_type))($(outputs...))
+        end
+
+        $(esc(name!))(func::AbstractLibXCFunctional, $(array_args...)) = begin
+            const Spin = SpinCategory(func)
+            $(arg_checks_array.(allargs)...)
+            $(to_libxc_array_types.(allargs)...)
+            $(esc(name!))(func, $(to_c_types.(array_args)...))
+            $(esc(output_type))($(from_libxc_types.(outputs)...))
         end
     end
 end
@@ -135,21 +86,41 @@ _nonmutating_wrapper_functionals(name::Symbol, dfttype::Symbol,
 
     name! = Symbol(name, :!)
     inputs = dfttype == :lda ? (:ρ, ) : (:ρ, :σ)
-    args = x -> :($x::DD.AxisArrays.$x)
+    args_axis = x -> :($x::DD.AxisArrays.$x)
+    args_array = x -> :($x::DD.Arrays.$x)
     similars = x -> begin
         if x == :ϵ
-            :(similar(DH.Scalars.$x{Float64}, SpinDegenerate(), ρ))
+            :(similar(ρ, DH.Scalars.$x{Float64}, SpinDegenerate()))
         else
-            :(similar(DH.Scalars.$x{Float64}, ρ))
+            :(similar(ρ, DH.Scalars.$x{Float64}, SpinAware()))
+        end
+    end
+    similars_nospin = x -> begin
+        @lintpragma("Ignore unused x")
+        :(similar(ρ, DH.Scalars.$x{Float64}))
+    end
+    similars_spin = x -> begin
+        if x == :ϵ
+            :(similar(ρ, DH.Scalars.$x{Float64}, Base.tail(size(ρ))))
+        else
+            :(similar(ρ, DH.Scalars.$x{Float64},
+                      length(components(DH.Scalars.$x, ColinearSpinFirst())),
+                      Base.tail(size(ρ))...))
         end
     end
 
     quote
-        $(esc(name))(func::AbstractLibXCFunctional, $(args.(inputs)...)) =
+        $(esc(name))(func::AbstractLibXCFunctional, $(args_axis.(inputs)...)) =
             $(esc(name!))(func, $(inputs...), $(similars.(outputs)...))
-
-        $(esc(name))(name::Symbol, $(args.(inputs)...)) =
+        $(esc(name))(name::Symbol, $(args_axis.(inputs)...)) =
             $(esc(name))(XCFunctional(name, is_spin_polarized(ρ)), $(inputs...))
+        $(esc(name))(func::AbstractLibXCFunctional, $(args_array.(inputs)...)) = begin
+            if spin(func) == Constants.polarized
+                $(esc(name!))(func, $(inputs...), $(similars_nospin.(outputs)...))
+            else
+                $(esc(name!))(func, $(inputs...), $(similars_nospin.(outputs)...))
+            end
+        end
     end
 end
 

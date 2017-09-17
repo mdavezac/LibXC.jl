@@ -16,6 +16,10 @@ using .Fixtures
     @test LibXC.FUNCTIONALS[:mgga_x_ms2] == 223
 end
 
+@testset "> Array manipulations" begin
+    include("ArrayManips.jl")
+end
+
 @testset "> Internal Functional API" begin
     include("internals.jl")
 end

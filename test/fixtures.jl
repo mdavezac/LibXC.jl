@@ -12,7 +12,7 @@ nospin(t, a) = reinterpret(t, SpinDegenerate(), a)
 withspin(t, a) = reinterpret(t, ColinearSpinFirst(), a)
 
 input_data(name::String) = begin
-    data_file = joinpath(dirname(Base.source_path()), "data", name)
+    data_file = joinpath(@__DIR__, "data", name)
 
     input = (map(x -> parse(Float64, x), split(v))
              for v in readlines(data_file)[2:end])
@@ -22,7 +22,7 @@ input_data(name::String) = begin
 end
 
 expected_data(name::String) = begin
-    data_file = joinpath(dirname(Base.source_path()), "data", name)
+    data_file = joinpath(@__DIR__, "data", name)
     expected = (map(x -> parse(Float64, x), split(v))
                 for v in readlines(data_file)[3:end])
     expected = transpose(hcat(expected...))
