@@ -6,6 +6,7 @@ using DataFrames: DataFrame
 using DFTShims
 
 const DHA = Dispatch.Hartree.Scalars
+macro lintpragma(s) end
 
 include("fixtures.jl")
 using .Fixtures

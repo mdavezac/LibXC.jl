@@ -52,7 +52,7 @@ valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.All, ::SpinDegenerate) 
 valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.ϵ, ::ColinearSpinFirst) = 
     @argcheck(Base.tail(size(ρ)) == size(other),
               "Dimensions of ρ and $(standard_name(other)) do not match")
-valid_array(ρ::DD.AxisArrays.ρ, other::DD.AxisArrays.All, C::ColinearSpinFirst) = begin
+valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.All, C::ColinearSpinFirst) = begin
     @argcheck(Base.tail(size(ρ)) == Base.tail(size(other)),
               "Dimensions of ρ and $(standard_name(other)) do not match")
     @argcheck(size(other, 1) == length(components(eltype(other), C)),
@@ -86,15 +86,15 @@ to_libxc_array(ρ::DD.AxisArrays.ρ, array::DD.AxisArrays.All) =  begin
     copy!(similar(ρ, Q, _libxc_spin(SpinCategory(array))), array)
 end
 
-to_libxc_array(array::DH.AxisArrays.All{Float64}) = array
-to_libxc_array(array::DD.AxisArrays.All) = begin
+to_libxc_array(array::DH.DenseArrays.All{Float64}) = array
+to_libxc_array(array::DD.DenseArrays.All) = begin
     const T = hartree_concretize_type(eltype(array))
     const Q = Quantity{Float64, typeof(dimension(T)), typeof(unit(T))}
     copy!(similar(array, Q), array)
 end
 
 """ Converts back from C libxc array """
-from_libxc_array!(output::DD.AxisArrays.All, carray::AxisArray) = begin
+from_libxc_array!(output::DD.Arrays.All, carray::AbstractArray) = begin
     carray !== output && copy!(output, carray)
     output
 end

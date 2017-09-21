@@ -14,7 +14,7 @@ macro test_nothrow(expr)
     end
 end
 
-@testset "Validating arrays" begin
+@testset "Validating axis arrays" begin
     const valid_array = LibXC.ArrayManips.valid_array
     AXES = Axis{:x}(Base.OneTo(4)), Axis{:y}(Base.OneTo(5)), Axis{:z}(Base.OneTo(6))
     AXES′ = Axis{:xx}(Base.OneTo(4)), AXES[2:end]...
@@ -28,7 +28,25 @@ end
                  valid_array(ρ, rand(DH.Scalars.∂ϵ_∂ρ{Int64}, ColinearSpinFirst(), AXES′)))
 end
 
-@testset "Array to LibXC style" begin
+@testset "Validating dense arrays" begin
+    const valid_array = LibXC.ArrayManips.valid_array
+    ρ = zeros(typeof(1u"nm^-3"), 2, 3, 4)
+    @test_nothrow valid_array(ρ, ρ, ColinearSpinFirst())
+    @test_nothrow valid_array(ρ, ρ, SpinDegenerate())
+    @test_nothrow valid_array(ρ, zeros(typeof(1.0u"∂ϵ_∂σ"), size(ρ)), SpinDegenerate())
+    n = length(components(typeof(1.0u"∂ϵ_∂σ"), ColinearSpinFirst()))
+    @test_nothrow valid_array(ρ, zeros(typeof(1.0u"∂ϵ_∂σ"), n, 3, 4), ColinearSpinFirst())
+    @test_throws(ArgumentError,
+                 valid_array(ρ, zeros(typeof(1.0u"∂ϵ_∂σ"), size(ρ)), ColinearSpinFirst()))
+
+    @test_nothrow valid_array(ρ, zeros(typeof(1.0u"ϵ"), size(ρ)), SpinDegenerate())
+    @test_nothrow valid_array(ρ, zeros(typeof(1.0u"ϵ"), Base.tail(size(ρ))),
+                              ColinearSpinFirst())
+    @test_throws(ArgumentError,
+                 valid_array(ρ, zeros(typeof(1.0u"ϵ"), size(ρ)), ColinearSpinFirst()))
+end
+
+@testset "AxisArray to LibXC style" begin
     const to_libxc_array = LibXC.ArrayManips.to_libxc_array
     AXES = Axis{:x}(Base.OneTo(4)), Axis{:y}(Base.OneTo(5)), Axis{:z}(Base.OneTo(6))
     AXES′ = Axis{:xx}(Base.OneTo(4)), AXES[2:end]...
@@ -63,4 +81,27 @@ end
     @test eltype(ϵ′) === DH.Scalars.ϵ{Float64}
     @test ϵ′ ≈ ϵ atol=1e-8u"ϵ"
     @test to_libxc_array(ρ, ϵ′) === ϵ′
+end
+
+@testset "DenseArray to LibXC style" begin
+    const to_libxc_array = LibXC.ArrayManips.to_libxc_array
+    SIZES = (2, 4, 5)
+
+    ρ = rand(UInt16, SIZES...)u"nm^-3"
+    ρ′= @inferred to_libxc_array(ρ)
+    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test ρ′ ≈ ρ atol=1e-8u"ρ"
+    @test @inferred(to_libxc_array(ρ′)) === ρ′
+
+    ρ = rand(UInt16, SIZES...)u"ρ"
+    ρ′= @inferred to_libxc_array(ρ)
+    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test ρ′ ≈ ρ atol=1e-8u"ρ"
+    @test @inferred(to_libxc_array(ρ′)) === ρ′
+
+    ρ = rand(Float64, SIZES...)u"nm^-3"
+    ρ′= @inferred to_libxc_array(ρ)
+    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test ρ′ ≈ ρ atol=1e-8u"ρ"
+    @test @inferred(to_libxc_array(ρ′)) === ρ′
 end

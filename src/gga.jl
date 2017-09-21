@@ -1,5 +1,7 @@
 module GGA
+
 using AxisArrays
+using ArgCheck
 
 import ...LibXC: energy, energy!, potential, potential!, energy_and_potential,
                  energy_and_potential!, second_energy_derivative, second_energy_derivative!,
@@ -16,30 +18,38 @@ const DH = Dispatch.Hartree
 
 macro lintpragma(s) end
 
-@_wrapper_functionals energy gga xc_gga_exc AxisArray ϵ
-@_wrapper_functionals(energy_and_potential, gga, xc_gga_exc_vxc, GGAEnergyAndPotential,
-                      ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
-@_wrapper_functionals potential gga xc_gga_vxc GGAPotential ∂ϵ_∂ρ ∂ϵ_∂σ
-@_wrapper_functionals(second_energy_derivative, gga, xc_gga_fxc, GGASecondDerivative,
-                      ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ²)
-@_wrapper_functionals(third_energy_derivative, gga, xc_gga_kxc, GGAThirdDerivative, ∂³ϵ_∂ρ³,
-                      ∂³ϵ_∂ρ²∂σ, ∂³ϵ_∂ρ∂σ², ∂³ϵ_∂σ³)
-@_wrapper_functionals(gga, gga, xc_gga, GGATuple, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ,
+@_all_wrapper_functionals energy gga xc_gga_exc AxisArray ϵ
+@_all_wrapper_functionals(energy_and_potential, gga, xc_gga_exc_vxc, GGAEnergyAndPotential,
+                          ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
+@_all_wrapper_functionals potential gga xc_gga_vxc GGAPotential ∂ϵ_∂ρ ∂ϵ_∂σ
+@_all_wrapper_functionals(second_energy_derivative, gga, xc_gga_fxc, GGASecondDerivative,
+                          ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ²)
+@_all_wrapper_functionals(third_energy_derivative, gga, xc_gga_kxc, GGAThirdDerivative, ∂³ϵ_∂ρ³,
+                          ∂³ϵ_∂ρ²∂σ, ∂³ϵ_∂ρ∂σ², ∂³ϵ_∂σ³)
+@_wrapper_functionals(10, gga, xc_gga, GGATuple, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ,
                       ∂²ϵ_∂σ², ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ²∂σ, ∂³ϵ_∂ρ∂σ², ∂³ϵ_∂σ³)
-@_all_wrapper_functionals(10, gga, xc_gga, GGATuple, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ,
-                          ∂²ϵ_∂σ²)
-@_all_wrapper_functionals 10 gga xc_gga GGATuple ϵ ∂ϵ_∂ρ ∂ϵ_∂σ
-@_all_wrapper_functionals 10 gga xc_gga GGATuple ϵ
+@_wrapper_functionals(10, gga, xc_gga, GGATuple, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ,
+                      ∂²ϵ_∂σ²)
+@_wrapper_functionals 10 gga xc_gga GGATuple ϵ ∂ϵ_∂ρ ∂ϵ_∂σ
+@_wrapper_functionals 10 gga xc_gga GGATuple ϵ
 
-gga(func::AbstractLibXCFunctional{Float64}, ρ::DD.AxisArrays.ρ{Float64},
-    σ::DD.AxisArrays.σ{Float64}) = begin
+gga(func::AbstractLibXCFunctional{Float64}, ρ::DD.Arrays.ρ{Float64},
+    σ::DD.Arrays.σ{Float64}) = begin
     family(func) ≠ Constants.gga && throw(ArgumentError("input function is not LDA"))
-    Spin = SpinCategory(ρ)
+    Spin = SpinCategory(func)
+
+    # energy is a bit different since it is never spin polarized
+    if ρ isa AxisArray || Spin isa SpinDegenerate
+        ϵ = similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate())
+    else
+        # and axis less arrays can't deal with that easily
+        @argcheck size(ρ, 1) == length(components(eltype(ρ), Spin))
+        ϵ = similar(ρ, DH.Scalars.ϵ{Float64}, Base.tail(size(ρ)))
+    end
 
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
-        gga!(func, ρ, σ,
-             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+        gga!(func, ρ, σ, ϵ,
              similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
@@ -50,20 +60,18 @@ gga(func::AbstractLibXCFunctional{Float64}, ρ::DD.AxisArrays.ρ{Float64},
              similar(ρ, DH.Scalars.∂³ϵ_∂ρ∂σ²{Float64}, Spin),
              similar(ρ, DH.Scalars.∂³ϵ_∂σ³{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
-        gga!(func, ρ, σ,
-             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+        gga!(func, ρ, σ, ϵ,
              similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
              similar(ρ, DH.Scalars.∂²ϵ_∂ρ∂σ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂²ϵ_∂σ²{Float64}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
-        gga!(func, ρ, σ,
-             similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()),
+        gga!(func, ρ, σ, ϵ,
              similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
              similar(ρ, DH.Scalars.∂ϵ_∂σ{Float64}, Spin))
     elseif Constants.exc ∈ f
-        gga!(func, ρ, σ, similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()))
+        gga!(func, ρ, σ, ϵ)
     else
         throw(ArgumentError("Not sure what this functional can do"))
     end

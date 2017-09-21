@@ -4,47 +4,53 @@ input = input_data("BrOH")
 
 @testset ">> Unpolarizated " begin
     expected = expected_data("lda_x.BrOH.unpol.dat")
-    ρ = nospin(DHA.ρ{Cdouble}, input[:ρ_a] + input[:ρ_b])
-    @test energy(:lda_x, ρ) ≈ expected[:ε]
-    @test eltype(energy(:lda_x, ρ)) <: DHA.ϵ
-    @test potential(:lda_x, ρ) ≈ expected[:v]
-    @test eltype(potential(:lda_x, ρ)) <: DHA.∂ϵ_∂ρ
-    @test second_energy_derivative(:lda_x, ρ) ≈ expected[:δv]
-    @test eltype(second_energy_derivative(:lda_x, ρ)) <: DHA.∂²ϵ_∂ρ²
+    ρ₀ = nospin(DHA.ρ{Cdouble}, input[:ρ_a] + input[:ρ_b])
+    functional = XCFunctional(:lda_x, false)
 
-    func = XCFunctional(:lda_x, false)
-    ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρ)
-    @test ϵ ≈ expected[:ε]
-    @test ∂ϵ_∂ρ ≈ expected[:v]
+    @lintpragma("Ignore use of undeclared variable name")
+    @testset ">>> $name" for (name, ρ) in [:AxisArray => ρ₀, :DenseArray => ρ₀.data]
+        @test energy(functional, ρ) ≈ expected[:ε]
+        @test eltype(energy(functional, ρ)) <: DHA.ϵ
+        @test potential(functional, ρ) ≈ expected[:v]
+        @test eltype(potential(functional, ρ)) <: DHA.∂ϵ_∂ρ
+        @test second_energy_derivative(functional, ρ) ≈ expected[:δv]
+        @test eltype(second_energy_derivative(functional, ρ)) <: DHA.∂²ϵ_∂ρ²
 
-    # checks unit and type conversion
-    rho = uconvert(u"m^-3", ρ)
-    with_conv = energy_and_potential(:lda_x, rho)
-    @test with_conv[1] ≈ expected[:ε]
-    @test with_conv[2] ≈ expected[:v]
+        ϵ, ∂ϵ_∂ρ = energy_and_potential(functional, ρ)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ expected[:v]
 
-    ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρ)
-    @test ϵ ≈ expected[:ε]
-    @test ∂ϵ_∂ρ ≈ expected[:v]
-    @test ∂²ϵ_∂ρ² ≈ expected[:δv]
+        ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(functional, ρ)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ expected[:v]
+        @test ∂²ϵ_∂ρ² ≈ expected[:δv]
+
+        # checks unit and type conversion
+        rho = copy!(similar(ρ, typeof(1.0u"m^-3")), ρ)
+        with_conv = energy_and_potential(functional, rho)
+        @test with_conv[1] ≈ expected[:ε]
+        @test with_conv[2] ≈ expected[:v]
+    end
 end
 
 @testset ">> Polarized" begin
     expected = expected_data("lda_x.BrOH.pol.dat")
-    ρs = withspin(DHA.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
+    ρ₀ˢ = withspin(DHA.ρ{Cdouble}, vcat(input[:ρ_a]', input[:ρ_b]'))
+    functional = XCFunctional(:lda_x, true)
 
-    @test energy(:lda_x, ρs) ≈ expected[:ε]
-    @test potential(:lda_x, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
-    δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
-    @test second_energy_derivative(:lda_x, ρs) ≈ δv
+    @testset ">>> $name" for (name, ρs) in [:AxisArray => ρ₀ˢ, :DenseArray => ρ₀ˢ.data]
+        @test energy(functional, ρs) ≈ expected[:ε]
+        @test potential(functional, ρs) ≈ vcat(expected[:v_a]', expected[:v_b]')
+        δv = vcat(expected[:δv_aa]', expected[:δv_ab]', expected[:δv_bb]')
+        @test second_energy_derivative(functional, ρs) ≈ δv
 
-    func = XCFunctional(:lda_x, true)
-    ϵ, ∂ϵ_∂ρ = energy_and_potential(func, ρs)
-    @test ϵ ≈ expected[:ε]
-    @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
+        ϵ, ∂ϵ_∂ρ = energy_and_potential(functional, ρs)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
 
-    ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(:lda_x, ρs)
-    @test ϵ ≈ expected[:ε]
-    @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
-    @test ∂²ϵ_∂ρ² ≈ δv
+        ϵ, ∂ϵ_∂ρ, ∂²ϵ_∂ρ², ∂³ϵ_∂ρ³ = lda(functional, ρs)
+        @test ϵ ≈ expected[:ε]
+        @test ∂ϵ_∂ρ ≈ vcat(expected[:v_a]', expected[:v_b]')
+        @test ∂²ϵ_∂ρ² ≈ δv
+    end
 end

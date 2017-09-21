@@ -99,7 +99,7 @@ end
 
 for (cons, name) in (:AllLDA => :LDATuple, :AllGGA => :GGATuple)
     @eval begin
-        $name(args::Vararg{DD.AxisArrays.All}) = begin
+        $name(args::Vararg{DD.Arrays.All}) = begin
             @lintpragma("Ignore unused i")
             concretize = i -> i{Int64}
             fielddims = dimension.(concretize.(getfield.(DH.Scalars, fieldnames($cons))))

@@ -18,7 +18,7 @@ const DH = Dispatch.Hartree
 
 macro lintpragma(s) end
 
-_requested_outputs(o::Vararg{DD.AxisArrays.All}) = begin
+_requested_outputs(o::Vararg{DD.Arrays.All}) = begin
     @lintpragma("Ignore unused o")
     check = (x, y) -> eltype(x) <: y
     result = Constants.FLAGS[]
@@ -49,7 +49,7 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
     to_libxc_types = x -> :($(Symbol(:c, x)) = to_libxc_array(ρ, $x))
     to_libxc_array_types = x -> :($(Symbol(:c, x)) = to_libxc_array($x))
     to_dense_types = x -> :(reinterpret(Float64, $(Symbol(:c, x)).data))
-    to_c_types = x -> :(reinterpret(Float64, $x))
+    to_c_types = x -> :(reinterpret(Float64, $(Symbol(:c, x))))
     from_libxc_types = x -> :(from_libxc_array!($x, $(Symbol(:c, x))))
 
     quote
@@ -72,8 +72,16 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
         $(esc(name!))(func::AbstractLibXCFunctional, $(array_args...)) = begin
             const Spin = SpinCategory(func)
             $(arg_checks_array.(allargs)...)
+            if family(func) ≠ getfield(Constants, $(QuoteNode(dfttype)))
+                throw(ArgumentError("Incorrect functional type $($(QuoteNode(dfttype)))"))
+            end
+            reqout = _requested_outputs($(outputs...))
+            if !(reqout ⊆ flags(func))
+                throw(ArgumentError("This functional does not implement all of $reqout"))
+            end
+
             $(to_libxc_array_types.(allargs)...)
-            $(esc(name!))(func, $(to_c_types.(array_args)...))
+            $(esc(name!))(func, $(to_c_types.(allargs)...))
             $(esc(output_type))($(from_libxc_types.(outputs)...))
         end
     end
@@ -116,7 +124,7 @@ _nonmutating_wrapper_functionals(name::Symbol, dfttype::Symbol,
             $(esc(name))(XCFunctional(name, is_spin_polarized(ρ)), $(inputs...))
         $(esc(name))(func::AbstractLibXCFunctional, $(args_array.(inputs)...)) = begin
             if spin(func) == Constants.polarized
-                $(esc(name!))(func, $(inputs...), $(similars_nospin.(outputs)...))
+                $(esc(name!))(func, $(inputs...), $(similars_spin.(outputs)...))
             else
                 $(esc(name!))(func, $(inputs...), $(similars_nospin.(outputs)...))
             end
@@ -145,7 +153,7 @@ _c_wrapper_functionals(name::Symbol, dfttype::Symbol, cname::Symbol,
     end
 end
 
-macro _wrapper_functionals(func, ftype, cname, output_type, outputs...)
+macro _all_wrapper_functionals(func, ftype, cname, output_type, outputs...)
     quote
         $(_mutating_wrapper_functionals(func, ftype, output_type, outputs))
         $(_nonmutating_wrapper_functionals(func, ftype, outputs))
@@ -153,7 +161,7 @@ macro _wrapper_functionals(func, ftype, cname, output_type, outputs...)
     end
 end
 
-macro _all_wrapper_functionals(n::Int, func, cname, output_type, outputs...)
+macro _wrapper_functionals(n::Int, func, cname, output_type, outputs...)
     @lintpragma("Ignore unused i")
     o = (outputs..., (:C_NULL for i in (length(outputs) + 1):n)...)
     quote
