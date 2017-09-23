@@ -6,6 +6,7 @@ const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
 using Base.Iterators: zip
 using Unitful
+using AxisArrays
 
 macro lintpragma(s) end
 
@@ -81,9 +82,10 @@ Base.next(iter::NamedTuple, state::Integer) = iter[state], state + 1
 Base.done(iter::NamedTuple, state::Integer) = state > length(iter)
 
 simplify_units(io::IO, a::Any) = show(io, a)
-simplify_units{T, D, U}(io::IO, a::AbstractArray{Quantity{T, D, U}}) = begin
+simplify_units(io::IO, a::AxisArray) = simplify_units(io, a.data)
+simplify_units(io::IO, a::AbstractArray{<: Quantity{T}}) where T = begin
     print(io, reinterpret(T, a))
-    print(io, "u\"$(U())\"")
+    print(io, "u\"$(unit(eltype(a)))\"")
 end
 
 Base.show(io::IO, t::NamedTuple) = begin
