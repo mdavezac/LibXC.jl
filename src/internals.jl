@@ -186,7 +186,7 @@ end
 
 Base.showcompact(io::IO, func::AbstractLibXCFunctional) = begin
     symb = iFUNCTIONALS[libkey(func)]
-    print(io, "$(typeof(func))(:$symb, $(spin(func))")
+    print(io, "$(typeof(func))(:$symb, $(spin(func)))")
 end
 Base.show(io::IO, func::AbstractLibXCFunctional) = begin
     showcompact(io, func)
