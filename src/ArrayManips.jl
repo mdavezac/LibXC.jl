@@ -49,9 +49,13 @@ end
 valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.All, ::SpinDegenerate) = 
     @argcheck(size(ρ) == size(other),
               "Dimensions of ρ and $(standard_name(other)) do not match")
-valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.ϵ, ::ColinearSpinFirst) = 
-    @argcheck(Base.tail(size(ρ)) == size(other),
-              "Dimensions of ρ and $(standard_name(other)) do not match")
+valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.ϵ, ::ColinearSpinFirst) =  begin
+    if ndims(ρ) == 1
+        @argcheck size(other) == (1, ) "Dimensions of ρ and ϵ do not match"
+    else
+        @argcheck Base.tail(size(ρ)) == size(other) "Dimensions of ρ and ϵ do not match"
+    end
+end
 valid_array(ρ::DD.DenseArrays.ρ, other::DD.DenseArrays.All, C::ColinearSpinFirst) = begin
     @argcheck(Base.tail(size(ρ)) == Base.tail(size(other)),
               "Dimensions of ρ and $(standard_name(other)) do not match")

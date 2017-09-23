@@ -109,7 +109,8 @@ _nonmutating_wrapper_functionals(name::Symbol, dfttype::Symbol,
     end
     similars_spin = x -> begin
         if x == :ϵ
-            :(similar(ρ, DH.Scalars.$x{Float64}, Base.tail(size(ρ))))
+            :(similar(ρ, DH.Scalars.$x{Float64},
+                      ifelse(ndims(ρ) == 1, (1, ), Base.tail(size(ρ)))))
         else
             :(similar(ρ, DH.Scalars.$x{Float64},
                       length(components(DH.Scalars.$x, ColinearSpinFirst())),
