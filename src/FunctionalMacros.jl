@@ -10,6 +10,7 @@ using ..OutputTuples
 
 using AxisArrays
 using ArgCheck
+using Unitful
 
 using DFTShims: ColinearSpinFirst, SpinDegenerate, Dispatch, is_spin_polarized, components, 
                 SpinCategory, SpinAware
@@ -154,6 +155,31 @@ _c_wrapper_functionals(name::Symbol, dfttype::Symbol, cname::Symbol,
     end
 end
 
+""" Constructs scalar functions """
+macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr)
+    unit_args = arg -> :($(arg.args[1])::DD.Scalars.$(arg.args[2]))
+    args = arg -> arg.args[1]
+    DD2Float = arg ->
+        :(ustrip(convert(DH.Scalars.$(arg.args[2]){Float64}, $(arg.args[1]))))
+    Float2DD = arg -> :(DH.Scalars.$(arg[2]){T}(result[$(arg[1])]))
+    types = arg -> :(eltype(one($(arg.args[1]))))
+    inputs = tuple(_inputs.args...)
+    outputs = tuple(_outputs.args...)
+    output_type = length(outputs) > 1 ? :tuple: :identity
+    polarization = countnz(x.args[2] == :ρ for x in inputs) == 1 ?
+                    Constants.unpolarized:
+                    Constants.polarized
+    quote
+        $(esc(name))(name::Symbol, $(unit_args.(inputs)...)) =
+        $(esc(name))(XCFunctional(name, $polarization), $(args.(inputs)...))
+        $(esc(name))(func::AbstractLibXCFunctional, $(unit_args.(inputs)...)) = begin
+            result = $(esc(name))(func, $(DD2Float.(inputs)...))
+            T = promote_type(Float64, $(types.(inputs)...))
+            $output_type($(Float2DD.(collect(enumerate(outputs)))...))
+        end
+    end
+end
+
 macro _all_wrapper_functionals(func, ftype, cname, output_type, outputs...)
     quote
         $(_mutating_wrapper_functionals(func, ftype, output_type, outputs))
@@ -170,4 +196,5 @@ macro _wrapper_functionals(n::Int, func, cname, output_type, outputs...)
         $(_c_wrapper_functionals(func, func, cname, o))
     end
 end
+
 end

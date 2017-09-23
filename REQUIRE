@@ -3,3 +3,4 @@ BinDeps
 Documenter
 DocStringExtensions
 Unitful
+StaticArrays
