@@ -195,7 +195,7 @@ Base.show(io::IO, func::AbstractLibXCFunctional) = begin
         "\n  - kind: $(kind(func))",
         "\n  - family: $(family(func))",
         "\n  - spin: $(spin(func))",
-        "\n  - citations:")
+        "\n  - references:")
     for cit in citations(func)
         println(io, "      * $(cit.ref)")
     end
