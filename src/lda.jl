@@ -20,6 +20,35 @@ using DFTShims: ColinearSpinFirst, Dispatch, is_spin_polarized, components, Spin
 const DH = Dispatch.Hartree
 const DD = Dispatch.Hartree
 
+macro lintpragma(s) end
+@lintpragma("Ignore use of undeclared variable energy")
+@lintpragma("Ignore use of undeclared variable xc_lda_exc")
+@lintpragma("Ignore use of undeclared variable ϵ")
+@lintpragma("Ignore use of undeclared variable SLDAEnergyAndPotential")
+@lintpragma("Ignore use of undeclared variable energy_and_potential")
+@lintpragma("Ignore use of undeclared variable xc_lda_exc_vxc")
+@lintpragma("Ignore use of undeclared variable ∂ϵ_∂ρ")
+@lintpragma("Ignore use of undeclared variable potential")
+@lintpragma("Ignore use of undeclared variable xc_lda_vxc")
+@lintpragma("Ignore use of undeclared variable xc_lda_fxc")
+@lintpragma("Ignore use of undeclared variable xc_lda_kxc")
+@lintpragma("Ignore use of undeclared variable second_energy_derivative")
+@lintpragma("Ignore use of undeclared variable ∂²ϵ_∂ρ²")
+@lintpragma("Ignore use of undeclared variable ∂³ϵ_∂ρ³")
+@lintpragma("Ignore use of undeclared variable third_energy_derivative")
+@lintpragma("Ignore use of undeclared variable LDATuple")
+@lintpragma("Ignore use of undeclared variable LDAEnergyAndPotential")
+@lintpragma("Ignore use of undeclared variable SLDASecondDerivative")
+@lintpragma("Ignore use of undeclared variable SLDAThirdDerivative")
+@lintpragma("Ignore use of undeclared variable xc_lda")
+@lintpragma("Ignore use of undeclared variable family")
+@lintpragma("Ignore use of undeclared variable flags")
+@lintpragma("Ignore use of undeclared variable lda!")
+@lintpragma("Ignore use of undeclared variable ccall")
+@lintpragma("Ignore use of undeclared variable ρ")
+@lintpragma("Ignore use of undeclared variable ρα")
+@lintpragma("Ignore use of undeclared variable ρβ")
+
 
 @_all_wrapper_functionals energy lda xc_lda_exc identity ϵ
 @_all_wrapper_functionals(energy_and_potential, lda, xc_lda_exc_vxc, LDAEnergyAndPotential,
