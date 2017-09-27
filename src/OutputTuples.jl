@@ -83,8 +83,8 @@ Base.done(iter::NamedTuple, state::Integer) = state > length(iter)
 
 simplify_units(io::IO, a::Any) = show(io, a)
 simplify_units(io::IO, a::AxisArray) = simplify_units(io, a.data)
-simplify_units(io::IO, a::AbstractArray{<: Quantity{T}}) where T = begin
-    print(io, reinterpret(T, a))
+simplify_units(io::IO, a::AbstractArray{<: Quantity}) = begin
+    print(io, reinterpret(eltype(one(eltype(a))), a))
     print(io, "u\"$(unit(eltype(a)))\"")
 end
 
