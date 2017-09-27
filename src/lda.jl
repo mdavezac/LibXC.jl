@@ -61,32 +61,32 @@ macro lintpragma(s) end
 @_wrapper_functionals 4 lda xc_lda LDATuple ϵ ∂ϵ_∂ρ
 @_wrapper_functionals 4 lda xc_lda LDATuple ϵ
 
-lda(func::AbstractLibXCFunctional{Float64}, ρ::DD.Arrays.ρ{Float64}) = begin
+lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DD.Arrays.ρ{Cdouble}) = begin
     family(func) ≠ Constants.lda && throw(ArgumentError("input function is not LDA"))
     Spin = SpinCategory(func)
 
     # energy is a bit different since it is never spin polarized
     if ρ isa AxisArray || Spin isa SpinDegenerate
-        ϵ = similar(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate())
+        ϵ = similar(ρ, DH.Scalars.ϵ{Cdouble}, SpinDegenerate())
     else
         # and axis less arrays can't deal with that easily
         @argcheck size(ρ, 1) == length(components(eltype(ρ), Spin))
-        ϵ = similar(ρ, DH.Scalars.ϵ{Float64}, Base.tail(size(ρ)))
+        ϵ = similar(ρ, DH.Scalars.ϵ{Cdouble}, Base.tail(size(ρ)))
     end
 
     const f = flags(func)
     if Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f && Constants.kxc ∈ f
         lda!(func, ρ, ϵ,
-             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
-             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin),
-             similar(ρ, DH.Scalars.∂³ϵ_∂ρ³{Float64}, Spin))
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Cdouble}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Cdouble}, Spin),
+             similar(ρ, DH.Scalars.∂³ϵ_∂ρ³{Cdouble}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f && Constants.fxc ∈ f
         lda!(func, ρ, ϵ,
-             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin),
-             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Float64}, Spin))
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Cdouble}, Spin),
+             similar(ρ, DH.Scalars.∂²ϵ_∂ρ²{Cdouble}, Spin))
     elseif Constants.exc ∈ f && Constants.vxc ∈ f
         lda!(func, ρ, ϵ,
-             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Float64}, Spin))
+             similar(ρ, DH.Scalars.∂ϵ_∂ρ{Cdouble}, Spin))
     elseif Constants.exc ∈ f
         lda!(func, ρ, ϵ)
     else
@@ -97,63 +97,63 @@ end
 for (name, cname) in [:unsafe_energy => :e, :unsafe_potential => :v,
                       :unsafe_second_energy_derivative => :f,
                       :unsafe_third_energy_derivative => :k]
-    @eval $name(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begin
-        result = MVector{1, Float64}(0e0)
+    @eval $name(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble) = begin
+        result = MVector{1, Cdouble}(0e0)
         ccall(($(QuoteNode(Symbol(:xc_lda_, cname, :xc))), libxc),
-              Void, (Ptr{CFuncType}, Cint, Ref{Float64}, Ptr{Float64}),
+              Void, (Ptr{CFuncType}, Cint, Ref{Cdouble}, Ptr{Cdouble}),
               func.c_ptr, 1, ρ, result)
         result[1]
     end
 end
-unsafe_energy(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
-    result = MVector{1, Float64}(0e0)
-    cρ = SVector{2, Float64}(ρα, ρβ)
+unsafe_energy(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdouble) = begin
+    result = MVector{1, Cdouble}(0e0)
+    cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_exc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, cρ, result)
     result[1]
 end
-unsafe_potential(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
-    result = MVector{2, Float64}(0e0, 0e0)
-    cρ = SVector{2, Float64}(ρα, ρβ)
+unsafe_potential(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdouble) = begin
+    result = MVector{2, Cdouble}(0e0, 0e0)
+    cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_vxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, cρ, result)
     result
 end
-unsafe_second_energy_derivative(func::AbstractLibXCFunctional{Float64},
-                                ρα::Float64, ρβ::Float64) = begin
-    result = MVector{3, Float64}(0e0, 0e0, 0e0)
-    cρ = SVector{2, Float64}(ρα, ρβ)
+unsafe_second_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                                ρα::Cdouble, ρβ::Cdouble) = begin
+    result = MVector{3, Cdouble}(0e0, 0e0, 0e0)
+    cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_fxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, cρ, result)
     result
 end
-unsafe_third_energy_derivative(func::AbstractLibXCFunctional{Float64},
-                               ρα::Float64, ρβ::Float64) = begin
-    result = MVector{4, Float64}(0e0, 0e0, 0e0, 0e0)
-    cρ = SVector{2, Float64}(ρα, ρβ)
+unsafe_third_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                               ρα::Cdouble, ρβ::Cdouble) = begin
+    result = MVector{4, Cdouble}(0e0, 0e0, 0e0, 0e0)
+    cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_kxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, cρ, result)
     result
 end
-unsafe_energy_and_potential(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begin
-    ϵ = MVector{1, Float64}(0e0)
-    ∂ϵ_∂ρ = MVector{1, Float64}(0e0)
+unsafe_energy_and_potential(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble) = begin
+    ϵ = MVector{1, Cdouble}(0e0)
+    ∂ϵ_∂ρ = MVector{1, Cdouble}(0e0)
     ccall((:xc_lda_exc_vxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ref{Float64}, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ref{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, ρ, ϵ, ∂ϵ_∂ρ)
     ϵ[1], ∂ϵ_∂ρ[1]
 end
-unsafe_energy_and_potential(func::AbstractLibXCFunctional{Float64},
-                            ρα::Float64, ρβ::Float64) = begin
-    ϵ = MVector{1, Float64}(0e0)
-    ∂ϵ_∂ρ = MVector{2, Float64}(0e0, 0e0)
-    cρ = SVector{2, Float64}(ρα, ρβ)
+unsafe_energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
+                            ρα::Cdouble, ρβ::Cdouble) = begin
+    ϵ = MVector{1, Cdouble}(0e0)
+    ∂ϵ_∂ρ = MVector{2, Cdouble}(0e0, 0e0)
+    cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_exc_vxc, libxc), Void,
-          (Ptr{CFuncType}, Cint, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{CFuncType}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           func.c_ptr, 1, cρ, ϵ, ∂ϵ_∂ρ)
     ϵ[1], ∂ϵ_∂ρ[1], ∂ϵ_∂ρ[2]
 end

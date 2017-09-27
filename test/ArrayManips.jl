@@ -20,7 +20,7 @@ end
     AXES′ = Axis{:xx}(Base.OneTo(4)), AXES[2:end]...
     ρ = rand(typeof(1u"nm^-3"), ColinearSpinLast(), AXES)
     @test_nothrow valid_array(ρ, ρ)
-    @test_nothrow valid_array(ρ, zeros(ρ, DH.Scalars.ϵ{Float64}, SpinDegenerate()))
+    @test_nothrow valid_array(ρ, zeros(ρ, DH.Scalars.ϵ{Cdouble}, SpinDegenerate()))
     @test_throws ArgumentError valid_array(ρ, zeros(ρ, SpinDegenerate()))
     @test_throws(ArgumentError, 
                  valid_array(ρ, zeros(eltype(ρ), ColinearSpinLast(), AXES[1:(end - 1)])))
@@ -53,32 +53,32 @@ end
 
     ρ = rand(typeof(UInt16(1)u"nm^-3"), ColinearSpinLast(), AXES)
     ρ′= @inferred to_libxc_array(ρ, ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ permutedims(ρ, [4, 1, 2, 3]) atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′, ρ′)) === ρ′
 
-    ρ = rand(typeof(Float64(1)u"nm^-3"), ColinearSpinLast(), AXES)
+    ρ = rand(typeof(Cdouble(1)u"nm^-3"), ColinearSpinLast(), AXES)
     ρ′= @inferred to_libxc_array(ρ, ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ permutedims(ρ, [4, 1, 2, 3]) atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′, ρ′)) === ρ′
 
-    ρ = rand(typeof(Float64(1)u"ρ"), ColinearSpinLast(), AXES)
+    ρ = rand(typeof(Cdouble(1)u"ρ"), ColinearSpinLast(), AXES)
     ρ′= to_libxc_array(ρ, ρ)
     @test_broken @inferred to_libxc_array(ρ, ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ permutedims(ρ, [4, 1, 2, 3]) atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′, ρ′)) === ρ′
 
     ∂ϵ_∂ρ = rand(typeof(UInt16(1)u"eV*nm^3"), ColinearSpin{length(AXES)}(), AXES)
     ∂ϵ_∂ρ′= @inferred to_libxc_array(ρ, ∂ϵ_∂ρ)
-    @test eltype(∂ϵ_∂ρ′) === DH.Scalars.∂ϵ_∂ρ{Float64}
+    @test eltype(∂ϵ_∂ρ′) === DH.Scalars.∂ϵ_∂ρ{Cdouble}
     @test ∂ϵ_∂ρ′ ≈ permutedims(∂ϵ_∂ρ, [3, 1, 2, 4]) atol=1e-8u"∂ϵ_∂ρ"
     @test @inferred(to_libxc_array(ρ, ∂ϵ_∂ρ′)) === ∂ϵ_∂ρ′
 
     ϵ = rand(typeof(UInt16(1)u"eV"), AXES)
     ϵ′= @inferred to_libxc_array(ρ, ϵ)
-    @test eltype(ϵ′) === DH.Scalars.ϵ{Float64}
+    @test eltype(ϵ′) === DH.Scalars.ϵ{Cdouble}
     @test ϵ′ ≈ ϵ atol=1e-8u"ϵ"
     @test to_libxc_array(ρ, ϵ′) === ϵ′
 end
@@ -89,19 +89,19 @@ end
 
     ρ = rand(UInt16, SIZES...)u"nm^-3"
     ρ′= @inferred to_libxc_array(ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ ρ atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′)) === ρ′
 
     ρ = rand(UInt16, SIZES...)u"ρ"
     ρ′= @inferred to_libxc_array(ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ ρ atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′)) === ρ′
 
-    ρ = rand(Float64, SIZES...)u"nm^-3"
+    ρ = rand(Cdouble, SIZES...)u"nm^-3"
     ρ′= @inferred to_libxc_array(ρ)
-    @test eltype(ρ′) === DH.Scalars.ρ{Float64}
+    @test eltype(ρ′) === DH.Scalars.ρ{Cdouble}
     @test ρ′ ≈ ρ atol=1e-8u"ρ"
     @test @inferred(to_libxc_array(ρ′)) === ρ′
 end

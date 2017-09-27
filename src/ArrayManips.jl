@@ -85,15 +85,15 @@ _libxc_spin(::ColinearSpin) = ColinearSpinFirst()
 """ Converts input array to C libxc array """
 to_libxc_array(ρ::DD.AxisArrays.ρ, array::DD.AxisArrays.All) =  begin
     const T = hartree_concretize_type(eltype(array))
-    const Q = Quantity{Float64, typeof(dimension(T)), typeof(unit(T))}
+    const Q = Quantity{Cdouble, typeof(dimension(T)), typeof(unit(T))}
     eltype(array) === Q && _libxc_axes(ρ, array) && return array
     copy!(similar(ρ, Q, _libxc_spin(SpinCategory(array))), array)
 end
 
-to_libxc_array(array::DH.DenseArrays.All{Float64}) = array
+to_libxc_array(array::DH.DenseArrays.All{Cdouble}) = array
 to_libxc_array(array::DD.DenseArrays.All) = begin
     const T = hartree_concretize_type(eltype(array))
-    const Q = Quantity{Float64, typeof(dimension(T)), typeof(unit(T))}
+    const Q = Quantity{Cdouble, typeof(dimension(T)), typeof(unit(T))}
     copy!(similar(array, Q), array)
 end
 

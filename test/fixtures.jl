@@ -14,7 +14,7 @@ withspin(t, a) = reinterpret(t, ColinearSpinFirst(), a)
 input_data(name::String) = begin
     data_file = joinpath(@__DIR__, "data", name)
 
-    input = (map(x -> parse(Float64, x), split(v))
+    input = (map(x -> parse(Cdouble, x), split(v))
              for v in readlines(data_file)[2:end])
     input = transpose(hcat(input...))
     input = DataFrame(Any[input[:, i] for i in 1:size(input, 2)],
@@ -23,7 +23,7 @@ end
 
 expected_data(name::String) = begin
     data_file = joinpath(@__DIR__, "data", name)
-    expected = (map(x -> parse(Float64, x), split(v))
+    expected = (map(x -> parse(Cdouble, x), split(v))
                 for v in readlines(data_file)[3:end])
     expected = transpose(hcat(expected...))
     if size(expected, 2) == 3

@@ -39,7 +39,7 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
 
     # function arguments
     axis_args = (arg -> :($arg::DD.AxisArrays.$arg)).(allargs)
-    array_args = (arg -> :($arg::DD.DenseArrays.$arg{Float64})).(allargs)
+    array_args = (arg -> :($arg::DD.DenseArrays.$arg{Cdouble})).(allargs)
 
     # converts backt to original axisarrays
     name! = Symbol(name, :!)
@@ -49,8 +49,8 @@ _mutating_wrapper_functionals(name::Symbol, dfttype::Symbol, output_type::Symbol
     # converts to type understood by C LibXC
     to_libxc_types = x -> :($(Symbol(:c, x)) = to_libxc_array(ρ, $x))
     to_libxc_array_types = x -> :($(Symbol(:c, x)) = to_libxc_array($x))
-    to_dense_types = x -> :(reinterpret(Float64, $(Symbol(:c, x)).data))
-    to_c_types = x -> :(reinterpret(Float64, $(Symbol(:c, x))))
+    to_dense_types = x -> :(reinterpret(Cdouble, $(Symbol(:c, x)).data))
+    to_c_types = x -> :(reinterpret(Cdouble, $(Symbol(:c, x))))
     from_libxc_types = x -> :(from_libxc_array!($x, $(Symbol(:c, x))))
 
     quote
@@ -99,21 +99,21 @@ _nonmutating_wrapper_functionals(name::Symbol, dfttype::Symbol,
     args_array = x -> :($x::DD.Arrays.$x)
     similars = x -> begin
         if x == :ϵ
-            :(similar(ρ, DH.Scalars.$x{Float64}, SpinDegenerate()))
+            :(similar(ρ, DH.Scalars.$x{Cdouble}, SpinDegenerate()))
         else
-            :(similar(ρ, DH.Scalars.$x{Float64}, SpinAware()))
+            :(similar(ρ, DH.Scalars.$x{Cdouble}, SpinAware()))
         end
     end
     similars_nospin = x -> begin
         @lintpragma("Ignore unused x")
-        :(similar(ρ, DH.Scalars.$x{Float64}))
+        :(similar(ρ, DH.Scalars.$x{Cdouble}))
     end
     similars_spin = x -> begin
         if x == :ϵ
-            :(similar(ρ, DH.Scalars.$x{Float64},
+            :(similar(ρ, DH.Scalars.$x{Cdouble},
                       ifelse(ndims(ρ) == 1, (1, ), Base.tail(size(ρ)))))
         else
-            :(similar(ρ, DH.Scalars.$x{Float64},
+            :(similar(ρ, DH.Scalars.$x{Cdouble},
                       length(components(DH.Scalars.$x, ColinearSpinFirst())),
                       Base.tail(size(ρ))...))
         end
@@ -140,14 +140,14 @@ _c_wrapper_functionals(name::Symbol, dfttype::Symbol, cname::Symbol,
     allargs = dfttype == :lda ? (:ρ, outputs...): (:ρ, :σ, outputs...)
     name! = Symbol(name, :!)
     nonnull = collect(Iterators.filter(x -> x ≠ :C_NULL, allargs))
-    dargs = (arg -> :($arg::DenseArray{Float64})).(nonnull)
+    dargs = (arg -> :($arg::DenseArray{Cdouble})).(nonnull)
     quote
         $(esc(name!))(func::AbstractLibXCFunctional, $(dargs...)) = begin
             @lintpragma("Ignore use of undeclared variable ρ")
             @lintpragma("Ignore unused u")
             @lintpragma("Ignore use of undeclared variable ccall")
             ccall(($(QuoteNode(cname)), $libxc), Void,
-                  (Ptr{CFuncType}, Cint, $([:(Ptr{Float64}) for u in allargs]...)),
+                  (Ptr{CFuncType}, Cint, $([:(Ptr{Cdouble}) for u in allargs]...)),
                   func.c_ptr, length(ρ) / (spin(func) == Constants.polarized ? 2: 1),
                   $(allargs...))
             tuple($(nonnull...))
@@ -160,7 +160,7 @@ macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr, output_typ
     unit_args = arg -> :($(arg.args[1])::DD.Scalars.$(arg.args[2]))
     args = arg -> arg.args[1]
     DD2Float = arg ->
-        :(ustrip(convert(DH.Scalars.$(arg.args[2]){Float64}, $(arg.args[1]))))
+        :(ustrip(convert(DH.Scalars.$(arg.args[2]){Cdouble}, $(arg.args[1]))))
     Float2DD = arg -> :(DH.Scalars.$(arg[2]){T}(result[$(arg[1])]))
     types = arg -> :(eltype(one($(arg.args[1]))))
     inputs = tuple(_inputs.args...)
@@ -187,7 +187,7 @@ macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr, output_typ
             @argcheck spin(func) == $polarization
             @argcheck $checks ⊆ flags(func)
             result = $(esc(private_name))(func, $(DD2Float.(inputs)...))
-            T = promote_type(Float64, $(types.(first_few)...))
+            T = promote_type(Cdouble, $(types.(first_few)...))
             $output_type($(Float2DD.(collect(enumerate(outputs)))...))
         end
     end
