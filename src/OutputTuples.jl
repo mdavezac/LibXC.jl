@@ -49,7 +49,7 @@ Include the third derivative of the energy with respect to ρ, σ, and both ρ a
 struct GGAThirdDerivative{T0, T1, T2, T3} <: NamedTuple
     ∂³ϵ_∂ρ³::T0
     ∂³ϵ_∂ρ²∂σ::T1
-    ∂³ϵ_∂ρ∂σ²::T3
+    ∂³ϵ_∂ρ∂σ²::T2
     ∂³ϵ_∂σ³::T3
 end
 
