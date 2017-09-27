@@ -39,6 +39,27 @@ input = input_data("BrOH")
         @test all_out.∂²ϵ_∂ρ∂σ ≈ expected[:δv_bb]
         @test all_out.∂²ϵ_∂σ² ≈ expected[:δv_ab]
     end
+
+    @testset ">>> Scalars" begin
+        ρ, σ = 1.2u"ρ", 1.6u"σₑ"
+        @test energy(functional, [ρ], [σ])[1] ≈ @inferred energy(:gga_c_pbe, ρ, σ)
+
+        expected = potential(functional, [ρ], [σ])
+        @test expected.∂ϵ_∂ρ[1] ≈ @inferred(potential(:gga_c_pbe, ρ, σ))[1]
+        @test expected.∂ϵ_∂σ[1] ≈ @inferred(potential(:gga_c_pbe, ρ, σ))[2]
+
+        expected = second_energy_derivative(functional, [ρ], [σ])
+        @test expected.∂²ϵ_∂ρ²[1] ≈ @inferred(second_energy_derivative(:gga_c_pbe, ρ, σ))[1]
+        @test expected.∂²ϵ_∂ρ∂σ[1] ≈ @inferred(second_energy_derivative(:gga_c_pbe, ρ, σ))[2]
+        @test expected.∂²ϵ_∂σ²[1] ≈ @inferred(second_energy_derivative(:gga_c_pbe, ρ, σ))[3]
+
+        expected = third_energy_derivative(XCFunctional(:gga_k_revapbe, false), [ρ], [σ])
+        actual = @inferred third_energy_derivative(:gga_k_revapbe, ρ, σ)
+        @test expected.∂³ϵ_∂ρ³[1] ≈ actual[1]
+        @test expected.∂³ϵ_∂ρ²∂σ[1] ≈ actual[2]
+        @test expected.∂³ϵ_∂ρ∂σ²[1] ≈ actual[3]
+        @test expected.∂³ϵ_∂σ³[1] ≈ actual[4]
+    end
 end
 
 @testset ">> Polarized" begin
@@ -91,6 +112,33 @@ end
         @test all_out.∂²ϵ_∂ρ² ≈ ∂²ϵ_∂ρ²
         @test all_out.∂²ϵ_∂ρ∂σ ≈ ∂²ϵ_∂ρ∂σ
         @test all_out.∂²ϵ_∂σ² ≈ ∂²ϵ_∂σ²
+    end
+
+    @testset ">>> Scalars" begin
+        ρα, ρβ, σαα, σαβ, σββ = 1.2u"ρ", 0.1u"ρ", 1.6u"σₑ", 1.2u"σₑ", 0.1u"σₑ" 
+        expected = energy(functional, [ρα, ρβ], [σαα, σαβ, σββ])[1]
+        @test expected ≈ @inferred energy(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)
+
+        expected = potential(functional, [ρα, ρβ], [σαα, σαβ, σββ])
+        @test expected.∂ϵ_∂ρ[1] ≈ @inferred(potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ))[1]
+        @test expected.∂ϵ_∂ρ[2] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[2]
+        @test expected.∂ϵ_∂σ[1] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[3]
+        @test expected.∂ϵ_∂σ[2] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[4]
+        @test expected.∂ϵ_∂σ[3] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[5]
+
+        expected = second_energy_derivative(functional, [ρα, ρβ], [σαα, σαβ, σββ])
+        actual = @inferred second_energy_derivative(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)
+        @test expected.∂²ϵ_∂ρ² ≈ collect(actual[1:3])
+        @test expected.∂²ϵ_∂ρ∂σ ≈ collect(actual[4:9])
+        @test expected.∂²ϵ_∂σ² ≈ collect(actual[10:end])
+
+        expected = third_energy_derivative(XCFunctional(:gga_k_revapbe, true),
+                                           [ρα, ρβ], [σαα, σαβ, σββ])
+        actual = third_energy_derivative(:gga_k_revapbe, ρα, ρβ, σαα, σαβ, σββ)
+        @test expected.∂³ϵ_∂ρ³ ≈ collect(actual[1:4])
+        @test expected.∂³ϵ_∂ρ²∂σ ≈ collect(actual[5:13])
+        @test expected.∂³ϵ_∂ρ∂σ² ≈ collect(actual[14:25])
+        @test expected.∂³ϵ_∂σ³ ≈ collect(actual[26:end])
     end
 end
 

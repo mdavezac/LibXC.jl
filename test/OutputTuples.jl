@@ -7,6 +7,10 @@ const DH = Dispatch.Hartree
     @test OutputTuples.AllLDA(1, 2, 3, 4)[2] == 2
     @test OutputTuples.AllLDA(1, 2, 3, 4)[3] == 3
     @test OutputTuples.AllLDA(1, 2, 3, 4)[4] == 4
+    @test OutputTuples.AllLDA(1, 2, 3, 4)[[1, 4]] == (1, 4)
+    @test OutputTuples.AllLDA(1, 2, 3, 4)[2:2:4] == (2, 4)
+    @test OutputTuples.AllLDA(1, 2, 3, 4)[1:2] == (1, 2)
+    @test OutputTuples.AllLDA(1, 2, 3, 4)[2:2:end] == (2, 4)
 
     ∂ϵ_∂ρ = zeros(DH.Scalars.∂ϵ_∂ρ{Float64}, ColinearSpinFirst(), (2, 3))
     ∂³ϵ_∂ρ³ = zeros(DH.Scalars.∂³ϵ_∂ρ³{Float64}, ColinearSpinFirst(), (2, 3))

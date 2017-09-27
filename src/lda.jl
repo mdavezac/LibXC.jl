@@ -22,7 +22,8 @@ const DD = Dispatch.Hartree
 
 
 @_all_wrapper_functionals energy lda xc_lda_exc identity ϵ
-@_all_wrapper_functionals energy_and_potential lda xc_lda_exc_vxc LDAEnergyAndPotential ϵ ∂ϵ_∂ρ
+@_all_wrapper_functionals(energy_and_potential, lda, xc_lda_exc_vxc, LDAEnergyAndPotential,
+                          ϵ, ∂ϵ_∂ρ)
 @_all_wrapper_functionals potential lda xc_lda_vxc identity ∂ϵ_∂ρ
 @_all_wrapper_functionals second_energy_derivative lda xc_lda_fxc identity ∂²ϵ_∂ρ²
 @_all_wrapper_functionals third_energy_derivative lda xc_lda_kxc identity ∂³ϵ_∂ρ³
@@ -64,11 +65,10 @@ lda(func::AbstractLibXCFunctional{Float64}, ρ::DD.Arrays.ρ{Float64}) = begin
     end
 end
 
-for (name, cname) in [:energy => :e, :potential => :v,
-                      :second_energy_derivative => :f,
-                      :third_energy_derivative => :k]
+for (name, cname) in [:unsafe_energy => :e, :unsafe_potential => :v,
+                      :unsafe_second_energy_derivative => :f,
+                      :unsafe_third_energy_derivative => :k]
     @eval $name(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begin
-        @argcheck spin(func) == Constants.unpolarized
         result = MVector{1, Float64}(0e0)
         ccall(($(QuoteNode(Symbol(:xc_lda_, cname, :xc))), libxc),
               Void, (Ptr{CFuncType}, Cint, Ref{Float64}, Ptr{Float64}),
@@ -76,8 +76,7 @@ for (name, cname) in [:energy => :e, :potential => :v,
         result[1]
     end
 end
-energy(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
-    @argcheck spin(func) == Constants.polarized
+unsafe_energy(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
     result = MVector{1, Float64}(0e0)
     cρ = SVector{2, Float64}(ρα, ρβ)
     ccall((:xc_lda_exc, libxc), Void,
@@ -85,8 +84,7 @@ energy(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = b
           func.c_ptr, 1, cρ, result)
     result[1]
 end
-potential(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
-    @argcheck spin(func) == Constants.polarized
+unsafe_potential(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) = begin
     result = MVector{2, Float64}(0e0, 0e0)
     cρ = SVector{2, Float64}(ρα, ρβ)
     ccall((:xc_lda_vxc, libxc), Void,
@@ -94,9 +92,8 @@ potential(func::AbstractLibXCFunctional{Float64}, ρα::Float64, ρβ::Float64) 
           func.c_ptr, 1, cρ, result)
     result
 end
-second_energy_derivative(func::AbstractLibXCFunctional{Float64},
-                         ρα::Float64, ρβ::Float64) = begin
-    @argcheck spin(func) == Constants.polarized
+unsafe_second_energy_derivative(func::AbstractLibXCFunctional{Float64},
+                                ρα::Float64, ρβ::Float64) = begin
     result = MVector{3, Float64}(0e0, 0e0, 0e0)
     cρ = SVector{2, Float64}(ρα, ρβ)
     ccall((:xc_lda_fxc, libxc), Void,
@@ -104,9 +101,8 @@ second_energy_derivative(func::AbstractLibXCFunctional{Float64},
           func.c_ptr, 1, cρ, result)
     result
 end
-third_energy_derivative(func::AbstractLibXCFunctional{Float64},
-                         ρα::Float64, ρβ::Float64) = begin
-    @argcheck spin(func) == Constants.polarized
+unsafe_third_energy_derivative(func::AbstractLibXCFunctional{Float64},
+                               ρα::Float64, ρβ::Float64) = begin
     result = MVector{4, Float64}(0e0, 0e0, 0e0, 0e0)
     cρ = SVector{2, Float64}(ρα, ρβ)
     ccall((:xc_lda_kxc, libxc), Void,
@@ -114,8 +110,7 @@ third_energy_derivative(func::AbstractLibXCFunctional{Float64},
           func.c_ptr, 1, cρ, result)
     result
 end
-energy_and_potential(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begin
-    @argcheck spin(func) == Constants.unpolarized
+unsafe_energy_and_potential(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begin
     ϵ = MVector{1, Float64}(0e0)
     ∂ϵ_∂ρ = MVector{1, Float64}(0e0)
     ccall((:xc_lda_exc_vxc, libxc), Void,
@@ -123,9 +118,8 @@ energy_and_potential(func::AbstractLibXCFunctional{Float64}, ρ::Float64) = begi
           func.c_ptr, 1, ρ, ϵ, ∂ϵ_∂ρ)
     ϵ[1], ∂ϵ_∂ρ[1]
 end
-energy_and_potential(func::AbstractLibXCFunctional{Float64},
-                     ρα::Float64, ρβ::Float64) = begin
-    @argcheck spin(func) == Constants.polarized
+unsafe_energy_and_potential(func::AbstractLibXCFunctional{Float64},
+                            ρα::Float64, ρβ::Float64) = begin
     ϵ = MVector{1, Float64}(0e0)
     ∂ϵ_∂ρ = MVector{2, Float64}(0e0, 0e0)
     cρ = SVector{2, Float64}(ρα, ρβ)
@@ -135,16 +129,19 @@ energy_and_potential(func::AbstractLibXCFunctional{Float64},
     ϵ[1], ∂ϵ_∂ρ[1], ∂ϵ_∂ρ[2]
 end
 
-@_scalar_functional energy (ρ::ρ,) (ϵ,)
-@_scalar_functional energy (ρα::ρ, ρβ::ρ) (ϵ,)
-@_scalar_functional potential (ρ::ρ,) (∂ϵ_∂ρ,)
-@_scalar_functional potential (ρα::ρ, ρβ::ρ) (∂ϵ_∂ρ, ∂ϵ_∂ρ)
-@_scalar_functional energy_and_potential (ρ::ρ,) (ϵ, ∂ϵ_∂ρ)
-@_scalar_functional energy_and_potential (ρα::ρ, ρβ::ρ) (ϵ, ∂ϵ_∂ρ, ∂ϵ_∂ρ)
-@_scalar_functional second_energy_derivative (ρ::ρ,) (∂²ϵ_∂ρ², )
-@_scalar_functional second_energy_derivative (ρα::ρ, ρβ::ρ) (∂²ϵ_∂ρ², ∂²ϵ_∂ρ², ∂²ϵ_∂ρ²)
-@_scalar_functional third_energy_derivative (ρ::ρ, ) (∂³ϵ_∂ρ³,)
+@_scalar_functional energy (ρ::ρ,) (ϵ,) identity
+@_scalar_functional energy (ρα::ρ, ρβ::ρ) (ϵ,) identity
+@_scalar_functional potential (ρ::ρ,) (∂ϵ_∂ρ,) identity
+@_scalar_functional potential (ρα::ρ, ρβ::ρ) (∂ϵ_∂ρ, ∂ϵ_∂ρ) tuple
+@_scalar_functional energy_and_potential (ρ::ρ,) (ϵ, ∂ϵ_∂ρ) LDAEnergyAndPotential
+@_scalar_functional(energy_and_potential, (ρα::ρ, ρβ::ρ), (ϵ, ∂ϵ_∂ρ, ∂ϵ_∂ρ),
+                    SLDAEnergyAndPotential)
+@_scalar_functional second_energy_derivative (ρ::ρ,) (∂²ϵ_∂ρ², ) identity
+@_scalar_functional(second_energy_derivative, (ρα::ρ, ρβ::ρ),
+                    (∂²ϵ_∂ρ², ∂²ϵ_∂ρ², ∂²ϵ_∂ρ²), SLDASecondDerivative)
+@_scalar_functional third_energy_derivative (ρ::ρ, ) (∂³ϵ_∂ρ³,) identity
 @_scalar_functional(third_energy_derivative,
-                    (ρα::ρ, ρβ::ρ), (∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³))
+                    (ρα::ρ, ρβ::ρ), (∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³, ∂³ϵ_∂ρ³),
+                    SLDAThirdDerivative)
 
 end

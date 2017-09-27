@@ -98,10 +98,10 @@ end
         @test expected.∂ϵ_∂ρ[1] == @inferred(energy_and_potential(:lda_x, a, b))[2]
         @test expected.∂ϵ_∂ρ[2] == @inferred(energy_and_potential(:lda_x, a, b))[3]
 
-        expected = tuple(second_energy_derivative(functional, [a, b])...)
+        expected = SLDASecondDerivative(second_energy_derivative(functional, [a, b])...)
         @test expected == @inferred second_energy_derivative(:lda_x, a, b)
 
-        expected = tuple(third_energy_derivative(functional, [a, b])...)
+        expected = SLDAThirdDerivative(third_energy_derivative(functional, [a, b])...)
         @test expected == @inferred third_energy_derivative(:lda_x, a, b)
     end
 end

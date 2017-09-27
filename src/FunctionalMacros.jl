@@ -156,7 +156,7 @@ _c_wrapper_functionals(name::Symbol, dfttype::Symbol, cname::Symbol,
 end
 
 """ Constructs scalar functions """
-macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr)
+macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr, output_type::Symbol)
     unit_args = arg -> :($(arg.args[1])::DD.Scalars.$(arg.args[2]))
     args = arg -> arg.args[1]
     DD2Float = arg ->
@@ -165,16 +165,29 @@ macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr)
     types = arg -> :(eltype(one($(arg.args[1]))))
     inputs = tuple(_inputs.args...)
     outputs = tuple(_outputs.args...)
-    output_type = length(outputs) > 1 ? :tuple: :identity
     polarization = countnz(x.args[2] == :ρ for x in inputs) == 1 ?
                     Constants.unpolarized:
                     Constants.polarized
+    dfttype = countnz(x.args[2] == :σ for x in inputs) ≥ 1 ?
+                    Constants.gga:
+                    Constants.lda
+    private_name = Symbol(:unsafe_, name)
+    checks = name ∈ (:xc_lda_exc, :xc_gga_exc) ? (Constants.exc, ):
+             name ∈ (:xc_lda_vxc, :xc_gga_vxc) ? (Constants.vxc, ):
+             name ∈ (:xc_lda_fxc, :xc_gga_fxc) ? (Constants.fxc, ):
+             name ∈ (:xc_lda_kxc, :xc_gga_kxc) ? (Constants.kxc, ):
+                 (Constants.exc, Constants.vxc)
+    # because otherwise, inferrence fails
+    first_few = Base.first(Base.IteratorsMD.split(inputs, Val{2}))
     quote
         $(esc(name))(name::Symbol, $(unit_args.(inputs)...)) =
         $(esc(name))(XCFunctional(name, $polarization), $(args.(inputs)...))
         $(esc(name))(func::AbstractLibXCFunctional, $(unit_args.(inputs)...)) = begin
-            result = $(esc(name))(func, $(DD2Float.(inputs)...))
-            T = promote_type(Float64, $(types.(inputs)...))
+            @argcheck family(func) == $dfttype
+            @argcheck spin(func) == $polarization
+            @argcheck $checks ⊆ flags(func)
+            result = $(esc(private_name))(func, $(DD2Float.(inputs)...))
+            T = promote_type(Float64, $(types.(first_few)...))
             $output_type($(Float2DD.(collect(enumerate(outputs)))...))
         end
     end
