@@ -77,9 +77,12 @@ end
 Base.length(a::NamedTuple) = length(fieldnames(typeof(a)))
 Base.getindex(a::NamedTuple, index::Integer) =
     getfield(a, fieldname(typeof(a), index))
+Base.getindex(a::NamedTuple, sequence::Union{OrdinalRange, Vector{<:Integer}}) =
+    tuple((getfield(a, fieldname(typeof(a), i)) for i in sequence)...)
 Base.start(::NamedTuple) = 1
 Base.next(iter::NamedTuple, state::Integer) = iter[state], state + 1
 Base.done(iter::NamedTuple, state::Integer) = state > length(iter)
+Base.endof(a::NamedTuple) = length(a)
 
 simplify_units(io::IO, a::Any) = show(io, a)
 simplify_units(io::IO, a::AxisArray) = simplify_units(io, a.data)
