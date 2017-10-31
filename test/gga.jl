@@ -17,7 +17,7 @@ input = input_data("BrOH")
         @test_throws ArgumentError energy(functional, ρ)
         @test energy(functional, ρ, σ) ≈ expected[:ε]
 
-        pot = potential(functional, ρ, σ)
+        pot = first_energy_derivative(functional, ρ, σ)
         @test pot.∂ϵ_∂ρ ≈ expected[:v_a]
         @test pot.∂ϵ_∂σ ≈ expected[:v_b]
 
@@ -26,7 +26,7 @@ input = input_data("BrOH")
         @test second.∂²ϵ_∂ρ∂σ ≈ expected[:δv_bb]
         @test second.∂²ϵ_∂σ² ≈ expected[:δv_ab]
 
-        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_potential(functional, ρ, σ)
+        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_first_derivative(functional, ρ, σ)
         @test ϵ ≈ expected[:ε]
         @test ∂ϵ_∂ρ ≈ expected[:v_a]
         @test ∂ϵ_∂σ ≈ expected[:v_b]
@@ -44,9 +44,9 @@ input = input_data("BrOH")
         ρ, σ = 1.2u"ρ", 1.6u"σₑ"
         @test energy(functional, [ρ], [σ])[1] ≈ @inferred energy(:gga_c_pbe, ρ, σ)
 
-        expected = potential(functional, [ρ], [σ])
-        @test expected.∂ϵ_∂ρ[1] ≈ @inferred(potential(:gga_c_pbe, ρ, σ))[1]
-        @test expected.∂ϵ_∂σ[1] ≈ @inferred(potential(:gga_c_pbe, ρ, σ))[2]
+        expected = first_energy_derivative(functional, [ρ], [σ])
+        @test expected.∂ϵ_∂ρ[1] ≈ @inferred(first_energy_derivative(:gga_c_pbe, ρ, σ))[1]
+        @test expected.∂ϵ_∂σ[1] ≈ @inferred(first_energy_derivative(:gga_c_pbe, ρ, σ))[2]
 
         expected = second_energy_derivative(functional, [ρ], [σ])
         @test expected.∂²ϵ_∂ρ²[1] ≈ @inferred(second_energy_derivative(:gga_c_pbe, ρ, σ))[1]
@@ -75,7 +75,7 @@ end
         rho = copy!(similar(ρs, typeof(1.0u"m^-3")), ρs)
         @test energy(functional, rho, σs) ≈ expected[:ε]
 
-        pot = potential(functional, ρs, σs)
+        pot = first_energy_derivative(functional, ρs, σs)
         @test pot.∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
         @test pot.∂ϵ_∂σ ≈ expect
@@ -93,7 +93,7 @@ end
         @test second.∂²ϵ_∂σ²  ≈ ∂²ϵ_∂σ²
         @test second.∂²ϵ_∂ρ∂σ ≈ ∂²ϵ_∂ρ∂σ
 
-        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_potential(functional, ρs, σs)
+        ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ = energy_and_first_derivative(functional, ρs, σs)
         @test ϵ ≈ expected[:ε]
         @test ∂ϵ_∂ρ ≈ vcat(expected[:vrho_a]', expected[:vrho_b]')
         expect = vcat(expected[:vsigma_aa]', expected[:vsigma_ab]', expected[:vsigma_bb]')
@@ -119,12 +119,13 @@ end
         expected = energy(functional, [ρα, ρβ], [σαα, σαβ, σββ])[1]
         @test expected ≈ @inferred energy(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)
 
-        expected = potential(functional, [ρα, ρβ], [σαα, σαβ, σββ])
-        @test expected.∂ϵ_∂ρ[1] ≈ @inferred(potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ))[1]
-        @test expected.∂ϵ_∂ρ[2] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[2]
-        @test expected.∂ϵ_∂σ[1] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[3]
-        @test expected.∂ϵ_∂σ[2] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[4]
-        @test expected.∂ϵ_∂σ[3] ≈ potential(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)[5]
+        expected = first_energy_derivative(functional, [ρα, ρβ], [σαα, σαβ, σββ])
+        ∂ϵ = @inferred(first_energy_derivative(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ))
+        @test expected.∂ϵ_∂ρ[1] ≈ ∂ϵ[1]
+        @test expected.∂ϵ_∂ρ[2] ≈ ∂ϵ[2]
+        @test expected.∂ϵ_∂σ[1] ≈ ∂ϵ[3]
+        @test expected.∂ϵ_∂σ[2] ≈ ∂ϵ[4]
+        @test expected.∂ϵ_∂σ[3] ≈ ∂ϵ[5]
 
         expected = second_energy_derivative(functional, [ρα, ρβ], [σαα, σαβ, σββ])
         actual = @inferred second_energy_derivative(:gga_c_pbe, ρα, ρβ, σαα, σαβ, σββ)

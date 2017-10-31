@@ -1,8 +1,8 @@
 module OutputTuples
-export AllLDA, LDAEnergyAndPotential, GGAPotential, GGAEnergyAndPotential,
+export AllLDA, LDAEnergyAndFirstDerivative, GGAFirstDerivative, GGAEnergyAndFirstDerivative,
        GGASecondDerivative, GGAThirdDerivative, AllGGA, LDATuple, GGATuple,
-       SLDAEnergyAndPotential, SLDASecondDerivative, SLDAThirdDerivative,
-       GGASecondDerivatives, GGAPotentials, GGAThirdDerivatives
+       SLDAEnergyAndFirstDerivative, SLDASecondDerivative, SLDAThirdDerivative,
+       GGASecondDerivatives, SGGAFirstDerivative, GGAThirdDerivatives
 using ..Dispatch
 const DD = Dispatch.Dimensions
 const DH = Dispatch.Hartree
@@ -23,14 +23,14 @@ struct AllLDA{T0, T1, T2, T3} <: NamedTuple
     ∂³ϵ_∂ρ³::T3
 end
 
-""" Energy and potential from LDA """
-struct LDAEnergyAndPotential{T0, T1} <: NamedTuple
+""" Energy and first derivative from LDA """
+struct LDAEnergyAndFirstDerivative{T0, T1} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
 end
 
-""" Energy and potential from spin-LDA """
-struct SLDAEnergyAndPotential{T0, T1} <: NamedTuple
+""" Energy and first derivative from spin-LDA """
+struct SLDAEnergyAndFirstDerivative{T0, T1} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρα::T1
     ∂ϵ_∂ρβ::T1
@@ -51,13 +51,13 @@ struct SLDAThirdDerivative{T} <: FieldVector{4, T}
     ∂³ϵ_∂ρβ³::T
 end
 
-""" Energy and potential from LDA """
-struct GGAPotential{T0, T1} <: NamedTuple
+""" Energy and first derivative from LDA """
+struct GGAFirstDerivative{T0, T1} <: NamedTuple
     ∂ϵ_∂ρ::T0
     ∂ϵ_∂σ::T1
 end
 
-struct GGAPotentials{T0, T1} <: NamedTuple
+struct SGGAFirstDerivative{T0, T1} <: NamedTuple
     ∂ϵ_∂ρα::T0
     ∂ϵ_∂ρβ::T0
     ∂ϵ_∂σαα::T1
@@ -145,7 +145,7 @@ struct GGAThirdDerivatives{T0, T1, T2, T3} <: NamedTuple
 end
 
 """ Holds GGA energy and first derivatives """
-struct GGAEnergyAndPotential{T0, T1, T2} <: NamedTuple
+struct GGAEnergyAndFirstDerivative{T0, T1, T2} <: NamedTuple
     ϵ::T0
     ∂ϵ_∂ρ::T1
     ∂ϵ_∂σ::T2

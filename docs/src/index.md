@@ -136,7 +136,7 @@ derivatives do not. See the section on Unicode above.
 ## Using the functionals
 
 Once a functional is created, it can be called with a number of methods to compute the
-energy, the potential, as well as the second and third energy derivatives (when available
+energy, as well as the first, second, and third energy derivatives (when available
 for that functional).
 
 ```jldoctest
@@ -156,8 +156,8 @@ incur the cost of creating of a new array with the right type.
 The following functions are available:
 
 * [`energy`](@ref)
-* [`potential`](@ref)
-* [`energy_and_potential`](@ref)
+* [`first_energy_derivative`](@ref)
+* [`energy_and_first_derivative`](@ref)
 * [`second_energy_derivative`](@ref)
 * [`third_energy_derivative`](@ref)
 * [`lda`](@ref) (all possible lda for the given functional outputs)
@@ -208,8 +208,8 @@ julia> energy(:lda_x, false, [1 2 3; 3 2 1]u"nm^-3")
 ## Using pre-allocated output array
 
 Similar functions exist that take pre-allocated output arrays. Following `Julia`
-conventions, these functions are named `energy!`, `potential!`, etc... Each function named
-above has an `xxx!` counterpart.
+conventions, these functions are named `energy!`, `first_energy_derivative!`, etc... Each
+function named above has an `xxx!` counterpart.
 
 ```@meta
 DocTestSetup = quote
@@ -226,7 +226,7 @@ julia> ϵ = similar(ρ, LibXC.Units.ϵ{Cdouble});
 
 julia> ∂ϵ_∂ρ = similar(ρ, LibXC.Units.∂ϵ_∂ρ{Cdouble});
 
-julia> result = energy_and_potential!(func, ρ, ϵ, ∂ϵ_∂ρ)
+julia> result = energy_and_first_derivative!(func, ρ, ϵ, ∂ϵ_∂ρ)
 (ϵ = [-0.738559,-0.930526,-1.06519]u"Eₕ", ∂ϵ_∂ρ = [-0.984745,-1.2407,-1.42025]u"∂ϵ_∂ρ")
 
 julia> result.ϵ === ϵ

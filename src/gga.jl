@@ -4,8 +4,9 @@ using AxisArrays
 using StaticArrays
 using ArgCheck
 
-import ...LibXC: energy, energy!, potential, potential!, energy_and_potential,
-                 energy_and_potential!, second_energy_derivative, second_energy_derivative!,
+import ...LibXC: energy, energy!, first_energy_derivative, first_energy_derivative!,
+                 energy_and_first_derivative, energy_and_first_derivative!,
+                 second_energy_derivative, second_energy_derivative!,
                  third_energy_derivative, third_energy_derivative!, gga, gga!
 using ..Internals
 using ..Internals: AbstractLibXCFunctional, CFuncType, libxc
@@ -22,9 +23,10 @@ const DH = Dispatch.Hartree
 macro lintpragma(s) end
 
 @_all_wrapper_functionals energy gga xc_gga_exc AxisArray ϵ
-@_all_wrapper_functionals(energy_and_potential, gga, xc_gga_exc_vxc, GGAEnergyAndPotential,
-                          ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
-@_all_wrapper_functionals potential gga xc_gga_vxc GGAPotential ∂ϵ_∂ρ ∂ϵ_∂σ
+@_all_wrapper_functionals(energy_and_first_derivative, gga, xc_gga_exc_vxc,
+                          GGAEnergyAndFirstDerivative, ϵ, ∂ϵ_∂ρ, ∂ϵ_∂σ)
+@_all_wrapper_functionals(first_energy_derivative, gga, xc_gga_vxc, GGAFirstDerivative,
+                          ∂ϵ_∂ρ, ∂ϵ_∂σ)
 @_all_wrapper_functionals(second_energy_derivative, gga, xc_gga_fxc, GGASecondDerivative,
                           ∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ²)
 @_all_wrapper_functionals(third_energy_derivative, gga, xc_gga_kxc, GGAThirdDerivative, ∂³ϵ_∂ρ³,
@@ -97,7 +99,8 @@ unsafe_energy(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdoub
           func.c_ptr, 1, cρ, cσ, result)
     result[1]
 end
-unsafe_potential(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble, σ::Cdouble) = begin
+unsafe_first_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                               ρ::Cdouble, σ::Cdouble) = begin
     ∂ρ = MVector{1, Cdouble}(0e0)
     ∂σ = MVector{1, Cdouble}(0e0)
     ccall((:xc_gga_vxc, libxc),
@@ -106,8 +109,9 @@ unsafe_potential(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble, σ::Cdoubl
           func.c_ptr, 1, ρ, σ, ∂ρ, ∂σ)
     ∂ρ[1], ∂σ[1]
 end
-unsafe_potential(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdouble,
-                 σαα::Cdouble, σαβ::Cdouble, σββ::Cdouble) = begin
+unsafe_first_energy_derivative(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble,
+                               ρβ::Cdouble, σαα::Cdouble, σαβ::Cdouble,
+                               σββ::Cdouble) = begin
     ∂ρ = MVector{2, Cdouble}(0e0, 0e0)
     ∂σ = MVector{3, Cdouble}(0e0, 0e0, 0e0)
     cρ = SVector{2, Cdouble}(ρα, ρβ)
@@ -183,9 +187,9 @@ end
 
 @_scalar_functional energy (ρ::ρ, σ::σ) (ϵ,) identity
 @_scalar_functional energy (ρα::ρ, ρβ::ρ, σαα::σ, σβα::σ, σββ::σ) (ϵ,) identity
-@_scalar_functional potential (ρ::ρ, σ::σ) (∂ϵ_∂ρ, ∂ϵ_∂σ) tuple
-@_scalar_functional(potential, (ρα::ρ, ρβ::ρ, σαα::σ, σβα::σ, σββ::σ),
-                    (∂ϵ_∂ρ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂ϵ_∂σ, ∂ϵ_∂σ), GGAPotentials)
+@_scalar_functional first_energy_derivative (ρ::ρ, σ::σ) (∂ϵ_∂ρ, ∂ϵ_∂σ) tuple
+@_scalar_functional(first_energy_derivative, (ρα::ρ, ρβ::ρ, σαα::σ, σβα::σ, σββ::σ),
+                    (∂ϵ_∂ρ, ∂ϵ_∂ρ, ∂ϵ_∂σ, ∂ϵ_∂σ, ∂ϵ_∂σ), SGGAFirstDerivative)
 @_scalar_functional second_energy_derivative (ρ::ρ, σ::σ) (∂²ϵ_∂ρ², ∂²ϵ_∂ρ∂σ, ∂²ϵ_∂σ²) tuple
 @_scalar_functional(second_energy_derivative, (ρα::ρ, ρβ::ρ, σαα::σ, σβα::σ, σββ::σ),
                     (

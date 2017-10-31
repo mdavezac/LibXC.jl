@@ -14,8 +14,8 @@ macro lintpragma(s) end
 """
 Checks ρ and other array are compatible
 
-Note that the energy ϵ is not spin-polarized, whereas the potential is. Both share the same
-physical units. This means we have to make a special case of ϵ.
+Note that the energy density ϵ is not spin-polarized, whereas the first energy derivative
+is. Both share the same physical units. This means we have to make a special case of ϵ.
 """
 valid_array(ρ::DD.AxisArrays.ρ, other::DD.AxisArrays.ϵ) = begin
     @lintpragma("Ignore use of undeclared variable u")

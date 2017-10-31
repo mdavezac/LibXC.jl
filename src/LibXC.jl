@@ -1,9 +1,9 @@
 __precompile__()
 module LibXC
-export description, kind, family, flags, citations, spin, energy, energy!
-export potential, potential!, second_energy_derivative, third_energy_derivative
-export energy_and_potential, energy_and_potential!, lda!, lda, XCFunctional, gga, gga!
-export libxc_functionals
+export description, kind, family, flags, citations, spin, energy, energy!,
+       first_energy_derivative, first_energy_derivative!, second_energy_derivative,
+       third_energy_derivative,  energy_and_first_derivative, energy_and_first_derivative!,
+       lda!, lda, XCFunctional, gga, gga!, libxc_functionals
 
 using DocStringExtensions
 using Unitful: Quantity, @u_str
@@ -31,10 +31,10 @@ function gga end
 function gga! end
 function energy end
 function energy! end
-function potential end
-function potential! end
-function energy_and_potential! end
-function energy_and_potential end
+function first_energy_derivative end
+function first_energy_derivative! end
+function energy_and_first_derivative! end
+function energy_and_first_derivative end
 function second_energy_derivative end
 function second_energy_derivative! end
 function third_energy_derivative end

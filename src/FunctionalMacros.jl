@@ -1,6 +1,7 @@
 module FunctionalMacros
-import LibXC: energy, energy!, potential, potential!, energy_and_potential,
-              energy_and_potential!, second_energy_derivative, second_energy_derivative!,
+import LibXC: energy, energy!, first_energy_derivative, first_energy_derivative!,
+              energy_and_first_derivative, energy_and_first_derivative!,
+              second_energy_derivative, second_energy_derivative!,
               third_energy_derivative, third_energy_derivative!, lda, lda!
 using ..Constants
 using ..Internals

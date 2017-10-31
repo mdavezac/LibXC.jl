@@ -5,8 +5,9 @@ using StaticArrays
 using ArgCheck
 using Unitful
 
-import ...LibXC: energy, energy!, potential, potential!, energy_and_potential,
-                 energy_and_potential!, second_energy_derivative, second_energy_derivative!,
+import ...LibXC: energy, energy!, first_energy_derivative, first_energy_derivative!,
+                 energy_and_first_derivative, energy_and_first_derivative!,
+                 second_energy_derivative, second_energy_derivative!,
                  third_energy_derivative, third_energy_derivative!, lda, lda!
 using ..Internals
 using ..Internals: AbstractLibXCFunctional, CFuncType, libxc
@@ -24,11 +25,11 @@ macro lintpragma(s) end
 @lintpragma("Ignore use of undeclared variable energy")
 @lintpragma("Ignore use of undeclared variable xc_lda_exc")
 @lintpragma("Ignore use of undeclared variable ϵ")
-@lintpragma("Ignore use of undeclared variable SLDAEnergyAndPotential")
-@lintpragma("Ignore use of undeclared variable energy_and_potential")
+@lintpragma("Ignore use of undeclared variable SLDAEnergyAndFirstDerivative")
+@lintpragma("Ignore use of undeclared variable energy_and_first_derivative")
 @lintpragma("Ignore use of undeclared variable xc_lda_exc_vxc")
 @lintpragma("Ignore use of undeclared variable ∂ϵ_∂ρ")
-@lintpragma("Ignore use of undeclared variable potential")
+@lintpragma("Ignore use of undeclared variable first_energy_derivative")
 @lintpragma("Ignore use of undeclared variable xc_lda_vxc")
 @lintpragma("Ignore use of undeclared variable xc_lda_fxc")
 @lintpragma("Ignore use of undeclared variable xc_lda_kxc")
@@ -37,7 +38,7 @@ macro lintpragma(s) end
 @lintpragma("Ignore use of undeclared variable ∂³ϵ_∂ρ³")
 @lintpragma("Ignore use of undeclared variable third_energy_derivative")
 @lintpragma("Ignore use of undeclared variable LDATuple")
-@lintpragma("Ignore use of undeclared variable LDAEnergyAndPotential")
+@lintpragma("Ignore use of undeclared variable LDAEnergyAndFirstDerivative")
 @lintpragma("Ignore use of undeclared variable SLDASecondDerivative")
 @lintpragma("Ignore use of undeclared variable SLDAThirdDerivative")
 @lintpragma("Ignore use of undeclared variable xc_lda")
@@ -51,9 +52,9 @@ macro lintpragma(s) end
 
 
 @_all_wrapper_functionals energy lda xc_lda_exc identity ϵ
-@_all_wrapper_functionals(energy_and_potential, lda, xc_lda_exc_vxc, LDAEnergyAndPotential,
-                          ϵ, ∂ϵ_∂ρ)
-@_all_wrapper_functionals potential lda xc_lda_vxc identity ∂ϵ_∂ρ
+@_all_wrapper_functionals(energy_and_first_derivative, lda, xc_lda_exc_vxc,
+                          LDAEnergyAndFirstDerivative, ϵ, ∂ϵ_∂ρ)
+@_all_wrapper_functionals first_energy_derivative lda xc_lda_vxc identity ∂ϵ_∂ρ
 @_all_wrapper_functionals second_energy_derivative lda xc_lda_fxc identity ∂²ϵ_∂ρ²
 @_all_wrapper_functionals third_energy_derivative lda xc_lda_kxc identity ∂³ϵ_∂ρ³
 @_wrapper_functionals 4 lda xc_lda LDATuple ϵ ∂ϵ_∂ρ ∂²ϵ_∂ρ² ∂³ϵ_∂ρ³
@@ -94,7 +95,7 @@ lda(func::AbstractLibXCFunctional{Cdouble}, ρ::DD.Arrays.ρ{Cdouble}) = begin
     end
 end
 
-for (name, cname) in [:unsafe_energy => :e, :unsafe_potential => :v,
+for (name, cname) in [:unsafe_energy => :e, :unsafe_first_energy_derivative => :v,
                       :unsafe_second_energy_derivative => :f,
                       :unsafe_third_energy_derivative => :k]
     @eval $name(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble) = begin
@@ -113,7 +114,8 @@ unsafe_energy(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdoub
           func.c_ptr, 1, cρ, result)
     result[1]
 end
-unsafe_potential(func::AbstractLibXCFunctional{Cdouble}, ρα::Cdouble, ρβ::Cdouble) = begin
+unsafe_first_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
+                               ρα::Cdouble, ρβ::Cdouble) = begin
     result = MVector{2, Cdouble}(0e0, 0e0)
     cρ = SVector{2, Cdouble}(ρα, ρβ)
     ccall((:xc_lda_vxc, libxc), Void,
@@ -139,7 +141,8 @@ unsafe_third_energy_derivative(func::AbstractLibXCFunctional{Cdouble},
           func.c_ptr, 1, cρ, result)
     result
 end
-unsafe_energy_and_potential(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble) = begin
+unsafe_energy_and_first_derivative(func::AbstractLibXCFunctional{Cdouble},
+                                   ρ::Cdouble) = begin
     ϵ = MVector{1, Cdouble}(0e0)
     ∂ϵ_∂ρ = MVector{1, Cdouble}(0e0)
     ccall((:xc_lda_exc_vxc, libxc), Void,
@@ -147,8 +150,8 @@ unsafe_energy_and_potential(func::AbstractLibXCFunctional{Cdouble}, ρ::Cdouble)
           func.c_ptr, 1, ρ, ϵ, ∂ϵ_∂ρ)
     ϵ[1], ∂ϵ_∂ρ[1]
 end
-unsafe_energy_and_potential(func::AbstractLibXCFunctional{Cdouble},
-                            ρα::Cdouble, ρβ::Cdouble) = begin
+unsafe_energy_and_first_derivative(func::AbstractLibXCFunctional{Cdouble},
+                                   ρα::Cdouble, ρβ::Cdouble) = begin
     ϵ = MVector{1, Cdouble}(0e0)
     ∂ϵ_∂ρ = MVector{2, Cdouble}(0e0, 0e0)
     cρ = SVector{2, Cdouble}(ρα, ρβ)
@@ -160,11 +163,12 @@ end
 
 @_scalar_functional energy (ρ::ρ,) (ϵ,) identity
 @_scalar_functional energy (ρα::ρ, ρβ::ρ) (ϵ,) identity
-@_scalar_functional potential (ρ::ρ,) (∂ϵ_∂ρ,) identity
-@_scalar_functional potential (ρα::ρ, ρβ::ρ) (∂ϵ_∂ρ, ∂ϵ_∂ρ) tuple
-@_scalar_functional energy_and_potential (ρ::ρ,) (ϵ, ∂ϵ_∂ρ) LDAEnergyAndPotential
-@_scalar_functional(energy_and_potential, (ρα::ρ, ρβ::ρ), (ϵ, ∂ϵ_∂ρ, ∂ϵ_∂ρ),
-                    SLDAEnergyAndPotential)
+@_scalar_functional first_energy_derivative (ρ::ρ,) (∂ϵ_∂ρ,) identity
+@_scalar_functional first_energy_derivative (ρα::ρ, ρβ::ρ) (∂ϵ_∂ρ, ∂ϵ_∂ρ) tuple
+@_scalar_functional(energy_and_first_derivative, (ρ::ρ,), (ϵ, ∂ϵ_∂ρ),
+                    LDAEnergyAndFirstDerivative)
+@_scalar_functional(energy_and_first_derivative, (ρα::ρ, ρβ::ρ), (ϵ, ∂ϵ_∂ρ, ∂ϵ_∂ρ),
+                    SLDAEnergyAndFirstDerivative)
 @_scalar_functional second_energy_derivative (ρ::ρ,) (∂²ϵ_∂ρ², ) identity
 @_scalar_functional(second_energy_derivative, (ρα::ρ, ρβ::ρ),
                     (∂²ϵ_∂ρ², ∂²ϵ_∂ρ², ∂²ϵ_∂ρ²), SLDASecondDerivative)
