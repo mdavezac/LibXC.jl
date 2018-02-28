@@ -161,7 +161,7 @@ macro _scalar_functional(name::Symbol, _inputs::Expr, _outputs::Expr, output_typ
     unit_args = arg -> :($(arg.args[1])::DD.Scalars.$(arg.args[2]))
     args = arg -> arg.args[1]
     DD2Float = arg ->
-        :(ustrip(convert(DH.Scalars.$(arg.args[2]){Cdouble}, $(arg.args[1]))))
+        :(ustrip.(convert(DH.Scalars.$(arg.args[2]){Cdouble}, $(arg.args[1]))))
     Float2DD = arg -> :(DH.Scalars.$(arg[2]){T}(result[$(arg[1])]))
     types = arg -> :(eltype(one($(arg.args[1]))))
     inputs = tuple(_inputs.args...)
