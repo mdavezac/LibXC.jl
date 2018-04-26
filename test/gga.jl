@@ -3,9 +3,9 @@ input = input_data("BrOH")
 
 @testset ">> Unpolarizated " begin
     expected = expected_data("gga_c_pbe.BrOH.unpol.dat")
-    expected[:v_b] = reinterpret(DHA.∂ϵ_∂σ{Cdouble}, ustrip(expected[:v_b]))
-    expected[:δv_ab] = reinterpret(DHA.∂²ϵ_∂σ²{Cdouble}, ustrip(expected[:δv_ab]))
-    expected[:δv_bb] = reinterpret(DHA.∂²ϵ_∂ρ∂σ{Cdouble}, ustrip(expected[:δv_bb]))
+    expected[:v_b] = reinterpret(DHA.∂ϵ_∂σ{Cdouble}, ustrip.(expected[:v_b]))
+    expected[:δv_ab] = reinterpret(DHA.∂²ϵ_∂σ²{Cdouble}, ustrip.(expected[:δv_ab]))
+    expected[:δv_bb] = reinterpret(DHA.∂²ϵ_∂ρ∂σ{Cdouble}, ustrip.(expected[:δv_bb]))
 
     ρ₀ = nospin(DHA.ρ{Cdouble}, input[:ρ_a] .+ input[:ρ_b])
     σ₀ = nospin(DHA.σ{Cdouble}, input[:σ_aa] .+ 2input[:σ_ab] .+ input[:σ_bb])
