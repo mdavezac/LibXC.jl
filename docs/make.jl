@@ -1,16 +1,12 @@
 using Documenter
 using LibXC
-makedocs(
-         modules = [LibXC],
+makedocs(modules = [LibXC],
          clean = true,
          format = :html,
          sitename = "LibXC.jl",
          authors = "Mayeul d'Avezac",
          analytics = "UA-89508993-1",
-         pages = Any[
-                     "Home" => "index.md",
-                    ]
-        )
+         pages = LibXC._doc_pages())
 
 deploydocs(
     repo = "github.com/mdavezac/LibXC.jl.git",

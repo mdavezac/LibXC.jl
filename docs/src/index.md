@@ -20,12 +20,12 @@ The most efficient way to access the functionals is to create one:
 
 ```jldoctest
 julia> functional = XCFunctional(:lda_x, true)
-LibXC.XCFunctional{Float64}(:lda_x, polarized)
+LibXC.Internals.XCFunctional{Float64}(:lda_x, polarized)
   - description: Slater exchange
   - kind: exchange
   - family: lda
   - spin: polarized
-  - citations:
+  - references:
       * P. A. M. Dirac, Math. Proc. Cambridge Philos. Soc. 26, 376 (1930)
       * F. Bloch, Z. Phys. 57, 545 (1929)
 ```
@@ -48,20 +48,21 @@ simplifies reading the code at the cost of making writing slightly more awkward.
 Julia REPL, in IJulia, and in some text editors, these symbols can be inputed using their
 latex counterparts:
 
-  |                | Symbol | Latex Name  |
-  |----------------|--------|-------------|
-  | density        | ρ      | \rho        |
-  | density units  | Ρ      | \Rho        |
-  | energy         | ϵ      | \epsilon    |
-  | energy units   | Ε      | \Epsilon    |
-  | gradient       | ∇      | \nabla      |
-  | derivative     | ∂      | \partial    |
-  | Hartree energy | Εₕ     | \Epsilon\_h |
+  |                          | Symbol | Latex Name  |
+  |--------------------------|--------|-------------|
+  | density                  | ρ      | \rho        |
+  | contracted gradient of ρ | σₑ     | \sigma\_e   |
+  | density units            | Ρ      | \Rho        |
+  | energy                   | ϵ      | \epsilon    |
+  | energy units             | Ε      | \Epsilon    |
+  | gradient                 | ∇      | \nabla      |
+  | derivative               | ∂      | \partial    |
+  | Hartree energy           | Εₕ     | E\_h        |
 
 
 ## A word about input dimensionality
 
-The functionals expect input arrays ρ and ∇ρ, and (optionally) a number of output
+The functionals expect input arrays ρ and σₑ, and (optionally) a number of output
 arrays, for the energy `ϵ`, and the different derivatives, e.g. ∂ϵ/∂ρ. Because we are
 accessing a C library, some care must be taken when creating these arrays.
 
@@ -82,17 +83,17 @@ accessing a C library, some care must be taken when creating these arrays.
   |GGA        | unpolarized | polarized                 |
   |-----------|-------------|---------------------------|
   |ρ          | any         | `(2, ...)`                |
-  |∇ρ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |σₑ         | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
   |ϵ          | `size(ρ)`   | `size(ρ)[2:end]`          |
   |∂ϵ/∂ρ      | `size(ρ)`   | `size(ρ)`                 |
-  |∂ϵ/∂∇ρ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
+  |∂ϵ/∂σₑ     | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
   |∂²ϵ/∂ρ²    | `size(ρ)`   | `(3, size(ρ)[2:end]...)`  |
-  |∂²ϵ/∂ρ∂∇ρ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
-  |∂²ϵ/∂∇ρ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂ρ∂σₑ  | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
+  |∂²ϵ/∂σₑ²   | `size(ρ)`   | `(6, size(ρ)[2:end]...)`  |
   |∂³ϵ/∂ρ³    | `size(ρ)`   | `(4, size(ρ)[2:end]...)`  |
-  |∂³ϵ/∂ρ²∂∇ρ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
-  |∂³ϵ/∂ρ∂∇ρ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
-  |∂³ϵ/∂∇ρ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
+  |∂³ϵ/∂ρ²∂σₑ | `size(ρ)`   | `(9, size(ρ)[2:end]...)`  |
+  |∂³ϵ/∂ρ∂σₑ² | `size(ρ)`   | `(10, size(ρ)[2:end]...)` |
+  |∂³ϵ/∂σₑ³   | `size(ρ)`   | `(12, size(ρ)[2:end]...)` |
 
 For the exact meaning of each dimension in each array, please refer to
 [libxc](http://octopus-code.org/wiki/Libxc)
@@ -109,28 +110,28 @@ exchange-correlation energy densities, and their derivatives. These units can be
 the standard way:
 
 ```jldoctest
-julia> using LibXC, UnitfulHartree, Unitful
+julia> using LibXC, Unitful
 
 julia> 1u"ρ" === 1u"rho" == 1u"a₀^-3"
 true
 
-julia> 1u"∇ρ" === 1u"grho" == 1u"a₀^-4"
+julia> 1u"σₑ" === 1u"sig" == 1u"a₀^-8"
 true
 
-julia> 1u"ϵ" === 1u"Exc" === 1u"Eₕ" ≈ 27.211386034310873u"eV"
+julia> 1u"ϵ" === 1u"Eh" === 1u"Eₕ" ≈ 27.211386034310873u"eV"
 true
 
 julia> 1u"∂ϵ_∂ρ" == 1u"Eₕ*a₀^3"
 true
 
-julia> 1u"∂²ϵ_∂ρ∂∇ρ" == 1u"Eₕ*a₀^7"
+julia> 1u"∂²ϵ_∂ρ∂σ" == 1u"Eₕ*a₀^11"
 true
 
-julia> 1u"∂³ϵ_∂ρ²∂∇ρ" == 1u"Eₕ*a₀^10"
+julia> 1u"∂³ϵ_∂ρ²∂σ" == 1u"Eₕ*a₀^14"
 true
 ```
 
-ρ, ∇ρ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
+ρ, σₑ (gradient of ρ) and ϵ have non-unicode aliases, for ease of access. The energy
 derivatives do not. See the section on Unicode above.
 
 ## Using the functionals

@@ -51,4 +51,7 @@ include("lda.jl")
 using .LDA
 include("gga.jl")
 using .GGA
+
+""" setups docs, useful for docs and doctests """
+_doc_pages() = Any["Home" => "index.md"]
 end # module

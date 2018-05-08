@@ -4,6 +4,7 @@ using Base.Test
 using Unitful
 using DataFrames: DataFrame
 using DFTShims
+using Documenter
 
 const DHA = Dispatch.Hartree.Scalars
 macro lintpragma(s) end
@@ -35,5 +36,14 @@ end
 
 @testset "> GGA" begin
     include("gga.jl")
+end
+
+@testset "Docstests" begin
+    mktempdir() do path
+        makedocs(modules = [LibXC], clean = true,
+             build = joinpath(path, "build"),
+             pages = LibXC._doc_pages(),
+             root=joinpath(dirname(@__DIR__), "docs"))
+    end
 end
 end
